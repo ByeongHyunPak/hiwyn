@@ -105,9 +105,9 @@ def erp2pers_noise_warping(erp_noise, HW_pers, views, glctx):
 
         # Get warped target noise
         fin_v_val = torch.zeros(B*C, H_pers*W_pers+1, device=device)\
-            .scatter_add_(1, index=indices_flat.repeat(B*C, 1), erp=erp_up_noise_flat)[..., 1:]
+            .scatter_add_(1, index=indices_flat.repeat(B*C, 1), src=erp_up_noise_flat)[..., 1:]
         fin_v_num = torch.zeros(1, H_pers*W_pers+1, device=device)\
-            .scatter_add_(1, index=indices_flat, erp=ones_flat)[..., 1:]
+            .scatter_add_(1, index=indices_flat, src=ones_flat)[..., 1:]
         assert fin_v_num.min() != 0, ValueError(f"{theta},{phi}")
 
         final_values = fin_v_val / torch.sqrt(fin_v_num)
