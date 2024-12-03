@@ -144,11 +144,11 @@ def compute_erp_up_noise_pred(pers_noise_preds, erp2pers_indices, fin_v_num):
         # Flatten and mask indices without repeating
         erp2pers_ind_flat = erp2pers_ind.flatten()  # (H_erp_up * W_erp_up,)
         valid_mask = erp2pers_ind_flat > 0
-        valid_indices = erp2pers_ind_flat[valid_mask]  # Only valid indices
+        # valid_indices = erp2pers_ind_flat[valid_mask]  # Only valid indices
 
         # Incremental updates for noise and count
         for b in range(B*C):
-            erp_up_noise_pred[b, valid_mask] += pers_noise_pred_flat_pad[b, valid_indices]
+            erp_up_noise_pred[b, valid_mask] += pers_noise_pred_flat_pad[b, erp2pers_ind_flat]
             erp_up_count[b, valid_mask] += 1
 
     # Avoid division by zero
