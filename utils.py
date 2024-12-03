@@ -38,83 +38,112 @@ def cond_noise_sampling(src_noise, level=3):
 
     return up_noise
 
-def erp2pers_noise_warping(src_noise, up_level, HW_src, HW_tgt, views, glctx):
+def erp2pers_noise_warping(erp_noise, HW_pers, views, glctx):
 
-    B, C = src_noise.shape[:2]
-    H_src, W_src = HW_src
-    H_tgt, W_tgt = HW_tgt
-    
-    if up_level == 1:
-        src_up_noise = src_noise
-    elif up_level > 1:
-        src_up_noise = cond_noise_sampling(src_noise, up_level)
-    else:
-        NotImplementedError
-    
+    B, C, H_erp, W_erp = erp_noise.shape
+    H_pers, W_pers = HW_pers
+
     # Defining the partitioned polygons for target noise map
-    tr_H_tgt, tr_W_tgt = 2 * H_tgt + 1, 2 * W_tgt + 1
+    tr_H_pers, tr_W_pers = 2 * H_pers + 1, 2 * W_pers + 1
     i, j = torch.meshgrid(
-        torch.arange(tr_H_tgt, dtype=torch.int32),
-        torch.arange(tr_W_tgt, dtype=torch.int32),
+        torch.arange(tr_H_pers, dtype=torch.int32),
+        torch.arange(tr_W_pers, dtype=torch.int32),
         indexing="ij")
-    mesh_idxs = torch.stack((i, j), dim=-1)
+    mesh_idxs = torch.stack((i, j), dim=-1).to(erp_noise.device)
     reshaped_mesh_idxs = mesh_idxs.reshape(-1,2)
     
     front_tri_verts = torch.tensor([
-        [0, 1, 1+tr_W_tgt], [0, tr_W_tgt, 1+tr_W_tgt], 
-        [tr_W_tgt, 1+tr_W_tgt, 1+2*tr_W_tgt], [tr_W_tgt, 2*tr_W_tgt, 1+2*tr_W_tgt]])
-    per_tri_verts = torch.cat((front_tri_verts, front_tri_verts + 1),dim=0)
-    width = torch.arange(0, tr_W_tgt - 1, 2)
-    height = torch.arange(0, tr_H_tgt-1, 2) * (tr_W_tgt)
-    start_idxs = (width[None,...] + height[...,None]).reshape(-1,1)
-    vertices = (start_idxs.repeat(1,8)[...,None] + per_tri_verts[None,...]).reshape(-1,3)
+            [0, 1, 1+tr_W_pers], 
+            [0, tr_W_pers, 1+tr_W_pers], 
+            [tr_W_pers, 1+tr_W_pers, 1+2*tr_W_pers], 
+            [tr_W_pers, 2*tr_W_pers, 1+2*tr_W_pers]], 
+            device=erp_noise.device)
+    per_tri_verts = torch.cat((front_tri_verts, front_tri_verts + 1), dim=0)
+    width = torch.arange(0, tr_W_pers - 1, 2)
+    height = torch.arange(0, tr_H_pers-1, 2) * tr_W_pers
+    start_idxs = (width[None,...] + height[...,None]).reshape(-1,1).to(erp_noise.device)
+    vertices = (start_idxs.repeat(1, 8)[..., None] + per_tri_verts[None, ...]).reshape(-1, 3)
     
     # Perspective view vertex grid
     pers_i, pers_j = torch.meshgrid(
-        torch.linspace(-1, 1, tr_H_tgt),
-        torch.linspace(-1, 1, tr_W_tgt),
+        torch.linspace(-1, 1, tr_H_pers, dtype=torch.float64),
+        torch.linspace(-1, 1, tr_W_pers, dtype=torch.float64),
         indexing="ij")
-    pers_grid = torch.stack((pers_i, pers_j), dim=-1)
+    pers_grid = torch.stack((pers_i, pers_j), dim=-1).to(erp_noise.device)
 
     res = []
     inds = []
     for theta, phi in views:
         # Warping Rasterized Pers. grid
         pers2erp_grid, _ = gridy2x_pers2erp(gridy=pers_grid,
-            HWy=(2*H_tgt, 2*W_tgt), HWx=(2*H_src, 2*W_src),
+            HWy=(2*H_pers, 2*W_pers), HWx=(2*H_erp, 2*W_erp),
             THETA=theta, PHI=phi, FOVy=90, FOVx=360)
         
-        tgt_to_src_map = pers2erp_grid.view(tr_H_tgt, tr_W_tgt, 2)
+        pers_to_erp_map = pers2erp_grid.view(tr_H_pers, tr_W_pers, 2)
         idx_y = reshaped_mesh_idxs[..., 0].int()
         idx_x = reshaped_mesh_idxs[..., 1].int()
-        warped_coords = tgt_to_src_map[idx_y, idx_x].fliplr()
+        warped_coords = pers_to_erp_map[idx_y, idx_x].fliplr()
 
         len_grid = idx_y.shape[0]
         warped_vtx_pos = torch.cat((warped_coords, torch.zeros(len_grid, 1), torch.ones(len_grid, 1)), dim=-1)
         warped_vtx_pos = warped_vtx_pos[None,...].to("cuda")
         vertices = vertices.int().to("cuda")
 
-        resolution = [H_src * (2 ** up_level), W_src * (2 ** up_level)]
+        resolution = [H_erp, W_erp]
         with torch.no_grad():
             rast_out, _ = dr.rasterize(glctx, warped_vtx_pos, vertices, resolution=resolution)
         rast = rast_out[:,:,:,3:].permute(0,3,1,2).to(torch.int64)
 
         # Finding pixel indices in cond-upsampled map
         indices = (rast - 1) // 8 + 1 # there is 8 triangles per pixel
-        src_up_noise_flat = src_up_noise.reshape(B*C, -1).cpu()
-        ones_flat = torch.ones_like(src_up_noise_flat[:1])
-        indices_flat = indices.reshape(1, -1).cpu().to(torch.int64)
+        erp_up_noise_flat = erp_noise.reshape(B*C, -1)
+        ones_flat = torch.ones_like(erp_up_noise_flat[:1])
+        indices_flat = indices.reshape(1, -1).to(torch.int64)
 
         # Get warped target noise
-        fin_v_val = torch.zeros(B*C, H_tgt*W_tgt+1).scatter_add_(1, index=indices_flat.repeat(B*C, 1), src=src_up_noise_flat)[..., 1:]
-        fin_v_num = torch.zeros(1, H_tgt*W_tgt+1).scatter_add_(1, index=indices_flat, src=ones_flat)[..., 1:]
+        fin_v_val = torch.zeros(B*C, H_pers*W_pers+1, device=erp_noise.device)\
+            .scatter_add_(1, index=indices_flat.repeat(B*C, 1), erp=erp_up_noise_flat)[..., 1:]
+        fin_v_num = torch.zeros(1, H_pers*W_pers+1, device=erp_noise.device)\
+            .scatter_add_(1, index=indices_flat, erp=ones_flat)[..., 1:]
         assert fin_v_num.min() != 0, ValueError(f"{theta},{phi}")
 
         final_values = fin_v_val / torch.sqrt(fin_v_num)
-        tgt_warped_noise = final_values.reshape(B, C, H_tgt, W_tgt).float()
-        tgt_warped_noise = tgt_warped_noise.cuda()
-        res.append(tgt_warped_noise)
-        inds.append(indices.reshape(*resolution).to(torch.int64))
-        fin_v_num = fin_v_num.reshape(1, 1, H_tgt, W_tgt).cuda()
+        pers_warped_noise = final_values.reshape(B, C, H_pers, W_pers).float()
+        pers_warped_noise = pers_warped_noise.to(erp_noise.device)
 
-    return res, inds, src_up_noise, fin_v_num
+        res.append(pers_warped_noise)
+        inds.append(indices.reshape(*resolution))
+        fin_v_num = fin_v_num.reshape(1, 1, H_pers, W_pers)
+
+    return res, inds, fin_v_num
+
+def compute_erp_up_noise_pred(pers_noise_preds, erp2pers_indices, fin_v_num):
+
+    device = pers_noise_preds[0].device
+    B, C, H_pers, W_pers = pers_noise_preds[0].shape
+    H_erp_up, W_erp_up = erp2pers_indices[0].shape
+
+    # Initialize result tensors
+    erp_up_noise_pred = torch.zeros(B*C, H_erp_up*W_erp_up, device=device)
+    erp_up_count = torch.zeros(B*C, H_erp_up*W_erp_up, device=device)
+
+    # Loop over pers_noise_preds and erp2pers_indices
+    for pers_noise_pred, erp2pers_ind in zip(pers_noise_preds, erp2pers_indices):
+
+        pers_noise_pred = pers_noise_pred / fin_v_num
+        pers_noise_pred_flat = pers_noise_pred.reshape(B*C, -1)
+        pad = torch.tensor([0.]*(B*C), device=device).reshape(B*C, 1)
+        pers_noise_pred_flat_pad = torch.cat([pad, pers_noise_pred_flat], dim=-1) # (B*C, 1+H_pers*W_pers)
+
+        erp2pers_ind_flat = erp2pers_ind.reshape(1, -1).repeat(B*C, 1) # (B*C, H_erp_up*W_erp_up)
+        valid_erp2pers_ind_flat = erp2pers_ind_flat > 0
+        erp_up_noise_pred += pers_noise_pred_flat_pad[erp2pers_ind_flat][:,1:] # (B*C, H_erp_up*W_erp_up)
+        erp_up_count[valid_erp2pers_ind_flat] += 1
+
+    # Avoid division by zero
+    erp_up_count = torch.clamp(erp_up_count, min=1)
+
+    # Compute averaged noise_pred
+    erp_up_noise_pred = erp_up_noise_pred / erp_up_count
+
+    return erp_up_noise_pred
