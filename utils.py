@@ -39,7 +39,7 @@ def cond_noise_sampling(src_noise, level=3):
     return up_noise
 
 def erp2pers_noise_warping(erp_noise, HW_pers, views, glctx):
-
+    device = erp_noise.device
     B, C, H_erp, W_erp = erp_noise.shape
     H_pers, W_pers = HW_pers
 
@@ -49,7 +49,7 @@ def erp2pers_noise_warping(erp_noise, HW_pers, views, glctx):
         torch.arange(tr_H_pers, dtype=torch.int32),
         torch.arange(tr_W_pers, dtype=torch.int32),
         indexing="ij")
-    mesh_idxs = torch.stack((i, j), dim=-1).to(erp_noise.device)
+    mesh_idxs = torch.stack((i, j), dim=-1).to(device)
     reshaped_mesh_idxs = mesh_idxs.reshape(-1,2)
     
     front_tri_verts = torch.tensor([
@@ -57,11 +57,11 @@ def erp2pers_noise_warping(erp_noise, HW_pers, views, glctx):
             [0, tr_W_pers, 1+tr_W_pers], 
             [tr_W_pers, 1+tr_W_pers, 1+2*tr_W_pers], 
             [tr_W_pers, 2*tr_W_pers, 1+2*tr_W_pers]], 
-            device=erp_noise.device)
+            device=device)
     per_tri_verts = torch.cat((front_tri_verts, front_tri_verts + 1), dim=0)
     width = torch.arange(0, tr_W_pers - 1, 2)
     height = torch.arange(0, tr_H_pers-1, 2) * tr_W_pers
-    start_idxs = (width[None,...] + height[...,None]).reshape(-1,1).to(erp_noise.device)
+    start_idxs = (width[None,...] + height[...,None]).reshape(-1,1).to(device)
     vertices = (start_idxs.repeat(1, 8)[..., None] + per_tri_verts[None, ...]).reshape(-1, 3)
     
     # Perspective view vertex grid
@@ -69,7 +69,7 @@ def erp2pers_noise_warping(erp_noise, HW_pers, views, glctx):
         torch.linspace(-1, 1, tr_H_pers, dtype=torch.float64),
         torch.linspace(-1, 1, tr_W_pers, dtype=torch.float64),
         indexing="ij")
-    pers_grid = torch.stack((pers_i, pers_j), dim=-1).to(erp_noise.device)
+    pers_grid = torch.stack((pers_i, pers_j), dim=-1).to(device)
 
     res = []
     inds = []
@@ -85,7 +85,9 @@ def erp2pers_noise_warping(erp_noise, HW_pers, views, glctx):
         warped_coords = pers_to_erp_map[idx_y, idx_x].fliplr()
 
         len_grid = idx_y.shape[0]
-        warped_vtx_pos = torch.cat((warped_coords, torch.zeros(len_grid, 1), torch.ones(len_grid, 1)), dim=-1)
+        zeros = torch.zeros(len_grid, 1, device=device)
+        ones = torch.ones(len_grid, 1, device=device)
+        warped_vtx_pos = torch.cat((warped_coords, zeros, ones), dim=-1)
         warped_vtx_pos = warped_vtx_pos[None,...].to("cuda")
         vertices = vertices.int().to("cuda")
 
@@ -101,15 +103,15 @@ def erp2pers_noise_warping(erp_noise, HW_pers, views, glctx):
         indices_flat = indices.reshape(1, -1).to(torch.int64)
 
         # Get warped target noise
-        fin_v_val = torch.zeros(B*C, H_pers*W_pers+1, device=erp_noise.device)\
+        fin_v_val = torch.zeros(B*C, H_pers*W_pers+1, device=device)\
             .scatter_add_(1, index=indices_flat.repeat(B*C, 1), erp=erp_up_noise_flat)[..., 1:]
-        fin_v_num = torch.zeros(1, H_pers*W_pers+1, device=erp_noise.device)\
+        fin_v_num = torch.zeros(1, H_pers*W_pers+1, device=device)\
             .scatter_add_(1, index=indices_flat, erp=ones_flat)[..., 1:]
         assert fin_v_num.min() != 0, ValueError(f"{theta},{phi}")
 
         final_values = fin_v_val / torch.sqrt(fin_v_num)
         pers_warped_noise = final_values.reshape(B, C, H_pers, W_pers).float()
-        pers_warped_noise = pers_warped_noise.to(erp_noise.device)
+        pers_warped_noise = pers_warped_noise.to(device)
 
         res.append(pers_warped_noise)
         inds.append(indices.reshape(*resolution))
