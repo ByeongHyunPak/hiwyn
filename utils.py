@@ -73,6 +73,8 @@ def erp2pers_noise_warping(erp_noise, HW_pers, views, glctx):
 
     res = []
     inds = []
+    zeros = torch.zeros(len_grid, 1).to(device)
+    ones = torch.ones(len_grid, 1).to(device)   
     for theta, phi in views:
         # Warping Rasterized Pers. grid
         pers2erp_grid, _ = gridy2x_pers2erp(gridy=pers_grid,
@@ -85,8 +87,7 @@ def erp2pers_noise_warping(erp_noise, HW_pers, views, glctx):
         warped_coords = pers_to_erp_map[idx_y, idx_x].fliplr()
 
         len_grid = idx_y.shape[0]
-        zeros = torch.zeros(len_grid, 1, device=device)
-        ones = torch.ones(len_grid, 1, device=device)
+        print(warped_coords.device, zeros.device, ones.device)
         warped_vtx_pos = torch.cat((warped_coords, zeros, ones), dim=-1)
         warped_vtx_pos = warped_vtx_pos[None,...].to("cuda")
         vertices = vertices.int().to("cuda")
