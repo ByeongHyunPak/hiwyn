@@ -126,22 +126,30 @@ def compute_erp_up_noise_pred(pers_noise_preds, erp2pers_indices, fin_v_num):
     B, C, H_pers, W_pers = pers_noise_preds[0].shape
     H_erp_up, W_erp_up = erp2pers_indices[0].shape
 
-    # Initialize result tensors
+    # Initialize result tensors in smaller chunks
     erp_up_noise_pred = torch.zeros(B*C, H_erp_up*W_erp_up, device=device)
     erp_up_count = torch.zeros(B*C, H_erp_up*W_erp_up, device=device)
 
-    # Loop over pers_noise_preds and erp2pers_indices
-    for pers_noise_pred, erp2pers_ind in zip(pers_noise_preds, erp2pers_indices):
+    # Process batch-wise to avoid large memory allocation
+    for i, (pers_noise_pred, erp2pers_ind) in enumerate(zip(pers_noise_preds, erp2pers_indices)):
 
+        # Normalize perspective noise
         pers_noise_pred = pers_noise_pred / fin_v_num
         pers_noise_pred_flat = pers_noise_pred.reshape(B*C, -1)
-        pad = torch.tensor([0.]*(B*C), device=device).reshape(B*C, 1)
-        pers_noise_pred_flat_pad = torch.cat([pad, pers_noise_pred_flat], dim=-1) # (B*C, 1+H_pers*W_pers)
 
-        erp2pers_ind_flat = erp2pers_ind.reshape(1, -1).repeat(B*C, 1) # (B*C, H_erp_up*W_erp_up)
-        valid_erp2pers_ind_flat = erp2pers_ind_flat > 0
-        erp_up_noise_pred += pers_noise_pred_flat_pad[erp2pers_ind_flat][:,1:] # (B*C, H_erp_up*W_erp_up)
-        erp_up_count[valid_erp2pers_ind_flat] += 1
+        # Avoid creating a padded tensor unnecessarily
+        pers_noise_pred_flat_pad = torch.zeros(B*C, H_pers*W_pers + 1, device=device)
+        pers_noise_pred_flat_pad[:, 1:] = pers_noise_pred_flat  # Add padding in-place
+
+        # Flatten and mask indices without repeating
+        erp2pers_ind_flat = erp2pers_ind.flatten()  # (H_erp_up * W_erp_up,)
+        valid_mask = erp2pers_ind_flat > 0
+        valid_indices = erp2pers_ind_flat[valid_mask]  # Only valid indices
+
+        # Incremental updates for noise and count
+        for b in range(B*C):
+            erp_up_noise_pred[b, valid_mask] += pers_noise_pred_flat_pad[b, valid_indices]
+            erp_up_count[b, valid_mask] += 1
 
     # Avoid division by zero
     erp_up_count = torch.clamp(erp_up_count, min=1)
