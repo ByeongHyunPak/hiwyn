@@ -144,7 +144,7 @@ def compute_erp_up_noise_pred(pers_noise_pred, erp2pers_ind, fin_v_num):
     # Incremental updates for noise
     erp_up_noise_pred[:, ...] = pers_noise_pred_flat_pad[:, erp2pers_ind_flat]
     erp_up_noise_pred = erp_up_noise_pred.reshape(B, C, H_erp_up, W_erp_up)
-    valid_mask = valid_mask.reshape(B, C, H_erp_up, W_erp_up)
+    valid_mask = valid_mask.reshape(1, 1, H_erp_up, W_erp_up)
 
     return erp_up_noise_pred, valid_mask
 
