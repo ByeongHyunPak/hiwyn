@@ -133,8 +133,8 @@ def compute_erp_up_noise_pred(pers_noise_preds, erp2pers_indices, fin_v_num):
     # Process batch-wise to avoid large memory allocation
     for i, (pers_noise_pred, erp2pers_ind) in enumerate(zip(pers_noise_preds, erp2pers_indices)):
 
-        # Normalize perspective noise
-        pers_noise_pred = pers_noise_pred / fin_v_num
+        # # Normalize perspective noise
+        # pers_noise_pred = pers_noise_pred / fin_v_num
         pers_noise_pred_flat = pers_noise_pred.reshape(B*C, -1)
 
         # Avoid creating a padded tensor unnecessarily
