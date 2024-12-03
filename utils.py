@@ -38,7 +38,7 @@ def cond_noise_sampling(src_noise, level=3):
 
     return up_noise
 
-def erp2pers_noise_warping(erp_noise, HW_pers, views, glctx):
+def erp2pers_latent_warping(erp_noise, HW_pers, views, glctx):
     device = erp_noise.device
     B, C, H_erp, W_erp = erp_noise.shape
     H_pers, W_pers = HW_pers
@@ -120,42 +120,71 @@ def erp2pers_noise_warping(erp_noise, HW_pers, views, glctx):
 
     return res, inds, fin_v_num
 
-def compute_erp_up_noise_pred(pers_noise_preds, erp2pers_indices, fin_v_num):
+def compute_erp_up_noise_pred(pers_noise_pred, erp2pers_ind, fin_v_num):
 
-    device = pers_noise_preds[0].device
-    B, C, H_pers, W_pers = pers_noise_preds[0].shape
-    H_erp_up, W_erp_up = erp2pers_indices[0].shape
+    device = pers_noise_pred.device
+    B, C, H_pers, W_pers = pers_noise_pred.shape
+    H_erp_up, W_erp_up = erp2pers_ind.shape
 
     # Initialize result tensors in smaller chunks
     erp_up_noise_pred = torch.zeros(B*C, H_erp_up*W_erp_up, device=device)
-    erp_up_count = torch.zeros(B*C, H_erp_up*W_erp_up, device=device)
+    
+    # Normalize perspective noise
+    pers_noise_pred = pers_noise_pred / torch.sqrt(fin_v_num)
+    pers_noise_pred_flat = pers_noise_pred.reshape(B*C, -1)
 
-    # Process batch-wise to avoid large memory allocation
-    for i, (pers_noise_pred, erp2pers_ind) in enumerate(zip(pers_noise_preds, erp2pers_indices)):
+    # Avoid creating a padded tensor unnecessarily
+    pers_noise_pred_flat_pad = torch.zeros(B*C, H_pers*W_pers + 1, device=device)
+    pers_noise_pred_flat_pad[:, 1:] = pers_noise_pred_flat  # Add padding in-place
 
-        # # Normalize perspective noise
-        pers_noise_pred = pers_noise_pred / torch.sqrt(fin_v_num)
-        pers_noise_pred_flat = pers_noise_pred.reshape(B*C, -1)
+    # Flatten and mask indices without repeating
+    erp2pers_ind_flat = erp2pers_ind.flatten()  # (H_erp_up * W_erp_up,)
+    valid_mask = erp2pers_ind_flat > 0
 
-        # Avoid creating a padded tensor unnecessarily
-        pers_noise_pred_flat_pad = torch.zeros(B*C, H_pers*W_pers + 1, device=device)
-        pers_noise_pred_flat_pad[:, 1:] = pers_noise_pred_flat  # Add padding in-place
-
-        # Flatten and mask indices without repeating
-        erp2pers_ind_flat = erp2pers_ind.flatten()  # (H_erp_up * W_erp_up,)
-        valid_mask = erp2pers_ind_flat > 0
-        # valid_indices = erp2pers_ind_flat[valid_mask]  # Only valid indices
-
-        # Incremental updates for noise and count
-        for b in range(B*C):
-            erp_up_noise_pred[b] += pers_noise_pred_flat_pad[b, erp2pers_ind_flat]
-            erp_up_count[b, valid_mask] += 1
-
-    # Avoid division by zero
-    erp_up_count = torch.clamp(erp_up_count, min=1)
-
-    # Compute averaged noise_pred
-    erp_up_noise_pred = erp_up_noise_pred / erp_up_count
+    # Incremental updates for noise
+    erp_up_noise_pred[:, ...] = pers_noise_pred_flat_pad[:, erp2pers_ind_flat]
     erp_up_noise_pred = erp_up_noise_pred.reshape(B, C, H_erp_up, W_erp_up)
+    valid_mask = valid_mask.reshape(B, C, H_erp_up, W_erp_up)
 
-    return erp_up_noise_pred
+    return erp_up_noise_pred, valid_mask
+
+# # deprecated -> do no average noise_preds
+# def compute_erp_up_noise_pred(pers_noise_preds, erp2pers_indices, fin_v_num):
+
+#     device = pers_noise_preds[0].device
+#     B, C, H_pers, W_pers = pers_noise_preds[0].shape
+#     H_erp_up, W_erp_up = erp2pers_indices[0].shape
+
+#     # Initialize result tensors in smaller chunks
+#     erp_up_noise_pred = torch.zeros(B*C, H_erp_up*W_erp_up, device=device)
+#     erp_up_count = torch.zeros(B*C, H_erp_up*W_erp_up, device=device)
+
+#     # Process batch-wise to avoid large memory allocation
+#     for i, (pers_noise_pred, erp2pers_ind) in enumerate(zip(pers_noise_preds, erp2pers_indices)):
+
+#         # # Normalize perspective noise
+#         pers_noise_pred = pers_noise_pred / torch.sqrt(fin_v_num)
+#         pers_noise_pred_flat = pers_noise_pred.reshape(B*C, -1)
+
+#         # Avoid creating a padded tensor unnecessarily
+#         pers_noise_pred_flat_pad = torch.zeros(B*C, H_pers*W_pers + 1, device=device)
+#         pers_noise_pred_flat_pad[:, 1:] = pers_noise_pred_flat  # Add padding in-place
+
+#         # Flatten and mask indices without repeating
+#         erp2pers_ind_flat = erp2pers_ind.flatten()  # (H_erp_up * W_erp_up,)
+#         valid_mask = erp2pers_ind_flat > 0
+#         # valid_indices = erp2pers_ind_flat[valid_mask]  # Only valid indices
+
+#         # Incremental updates for noise and count
+#         for b in range(B*C):
+#             erp_up_noise_pred[b] += pers_noise_pred_flat_pad[b, erp2pers_ind_flat]
+#             erp_up_count[b, valid_mask] += 1
+
+#     # Avoid division by zero
+#     erp_up_count = torch.clamp(erp_up_count, min=1)
+
+#     # Compute averaged noise_pred
+#     erp_up_noise_pred = erp_up_noise_pred / erp_up_count
+#     erp_up_noise_pred = erp_up_noise_pred.reshape(B, C, H_erp_up, W_erp_up)
+
+#     return erp_up_noise_pred
