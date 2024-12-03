@@ -156,5 +156,6 @@ def compute_erp_up_noise_pred(pers_noise_preds, erp2pers_indices, fin_v_num):
 
     # Compute averaged noise_pred
     erp_up_noise_pred = erp_up_noise_pred / erp_up_count
+    erp_up_noise_pred = erp_up_noise_pred.reshape(B, C, H_erp_up, W_erp_up)
 
     return erp_up_noise_pred
