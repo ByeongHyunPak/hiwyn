@@ -20,7 +20,7 @@ def cond_noise_sampling(src_noise, level=3):
         1) Unconditionally sample a discrete Nk x Nk Gaussian sample
     """
 
-    raw_rand = torch.randn(B, C, up_H, up_W)
+    raw_rand = torch.randn(B, C, up_H, up_W, device=src_noise.device)
 
     """
         2) Remove its mean from it
