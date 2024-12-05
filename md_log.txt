@@ -25,7 +25,7 @@
 
 1 / latent_view        : mean  0.79531 std  0.60064
 1 / noise_pred         : mean  0.79834 std  0.60352
-  2%|▏         | 1/50 [00:03<02:53,  3.53s/it]
+  
 2 / latent_view        : mean  0.80162 std  0.59951
 2 / noise_pred         : mean  0.80078 std  0.59912
 
@@ -46,7 +46,7 @@
 
 2 / latent_view        : mean  0.79223 std  0.59930
 2 / noise_pred         : mean  0.79492 std  0.60205
-  4%|▍         | 2/50 [00:04<01:46,  2.23s/it]
+  
 2 / latent_view        : mean  0.79292 std  0.59988
 2 / noise_pred         : mean  0.79541 std  0.60254
 
@@ -76,7 +76,7 @@
 
 3 / latent_view        : mean  0.79261 std  0.59956
 3 / noise_pred         : mean  0.79346 std  0.60107
-  6%|▌         | 3/50 [00:06<01:24,  1.80s/it]
+  
 3 / latent_view        : mean  0.79469 std  0.59996
 3 / noise_pred         : mean  0.79590 std  0.60156
 
@@ -104,7 +104,7 @@
 4 / latent_view        : mean  0.79237 std  0.59925
 4 / noise_pred         : mean  0.79150 std  0.59912
 
-  8%|▊         | 4/50 [00:07<01:11,  1.56s/it]4 / latent_view        : mean  0.79444 std  0.59963
+  4 / latent_view        : mean  0.79444 std  0.59963
 4 / noise_pred         : mean  0.79346 std  0.59961
 
 5 / latent_view        : mean  0.80071 std  0.59875
@@ -128,7 +128,7 @@
 5 / latent_view        : mean  0.79130 std  0.59841
 5 / noise_pred         : mean  0.79150 std  0.59863
 
- 10%|█         | 5/50 [00:08<01:04,  1.43s/it]5 / latent_view        : mean  0.79216 std  0.59897
+ 5 / latent_view        : mean  0.79216 std  0.59897
 5 / noise_pred         : mean  0.78955 std  0.59766
 
 5 / latent_view        : mean  0.79424 std  0.59934
@@ -158,7 +158,7 @@
 6 / latent_view        : mean  0.79199 std  0.59873
 6 / noise_pred         : mean  0.78760 std  0.59619
 
- 12%|█▏        | 6/50 [00:09<00:59,  1.35s/it]6 / latent_view        : mean  0.79408 std  0.59908
+ 6 / latent_view        : mean  0.79408 std  0.59908
 6 / noise_pred         : mean  0.78955 std  0.59668
 
 7 / latent_view        : mean  0.79984 std  0.59813
@@ -182,7 +182,7 @@
 7 / latent_view        : mean  0.79082 std  0.59795
 7 / noise_pred         : mean  0.78760 std  0.59570
 
- 14%|█▍        | 7/50 [00:10<00:56,  1.30s/it]7 / latent_view        : mean  0.79184 std  0.59850
+ 7 / latent_view        : mean  0.79184 std  0.59850
 7 / noise_pred         : mean  0.78564 std  0.59473
 
 7 / latent_view        : mean  0.79395 std  0.59882
@@ -212,7 +212,7 @@
 8 / latent_view        : mean  0.79168 std  0.59828
 8 / noise_pred         : mean  0.78369 std  0.59326
 
- 16%|█▌        | 8/50 [00:12<00:53,  1.27s/it]8 / latent_view        : mean  0.79380 std  0.59857
+ 8 / latent_view        : mean  0.79380 std  0.59857
 8 / noise_pred         : mean  0.78711 std  0.59424
 
 9 / latent_view        : mean  0.79877 std  0.59735
@@ -236,7 +236,7 @@
 9 / latent_view        : mean  0.79027 std  0.59748
 9 / noise_pred         : mean  0.78467 std  0.59375
 
- 18%|█▊        | 9/50 [00:13<00:51,  1.25s/it]9 / latent_view        : mean  0.79147 std  0.59804
+ 9 / latent_view        : mean  0.79147 std  0.59804
 9 / noise_pred         : mean  0.78223 std  0.59180
 
 9 / latent_view        : mean  0.79359 std  0.59830
@@ -266,7 +266,7 @@
 10 / latent_view        : mean  0.79120 std  0.59777
 10 / noise_pred         : mean  0.78076 std  0.59082
 
- 20%|██        | 10/50 [00:14<00:49,  1.24s/it]10 / latent_view        : mean  0.79331 std  0.59799
+ 10 / latent_view        : mean  0.79331 std  0.59799
 10 / noise_pred         : mean  0.78516 std  0.59277
 
 11 / latent_view        : mean  0.79723 std  0.59618
@@ -289,7 +289,7 @@
 
 11 / latent_view        : mean  0.78950 std  0.59692
 11 / noise_pred         : mean  0.78174 std  0.59180
- 22%|██▏       | 11/50 [00:15<00:47,  1.23s/it]
+ 
 11 / latent_view        : mean  0.79087 std  0.59748
 11 / noise_pred         : mean  0.77930 std  0.58984
 
@@ -321,7 +321,8 @@
 12 / noise_pred         : mean  0.77783 std  0.58887
 
 12 / latent_view        : mean  0.79250 std  0.59718
-12 / noise_pred         : mean  0.78467 std  0.59131 24%|██▍       | 12/50 [00:16<00:46,  1.23s/it]
+12 / noise_pred         : mean  0.78467 std  0.59131 
+
 
 13 / latent_view        : mean  0.79524 std  0.59462
 13 / noise_pred         : mean  0.79346 std  0.59473
@@ -346,7 +347,7 @@
 
 13 / latent_view        : mean  0.78994 std  0.59666
 13 / noise_pred         : mean  0.77637 std  0.58789
- 26%|██▌       | 13/50 [00:18<00:45,  1.22s/it]
+ 
 13 / latent_view        : mean  0.79195 std  0.59667
 13 / noise_pred         : mean  0.78369 std  0.59131
 
@@ -374,7 +375,7 @@
 14 / latent_view        : mean  0.78932 std  0.59612
 14 / noise_pred         : mean  0.77539 std  0.58789
 
- 28%|██▊       | 14/50 [00:19<00:43,  1.22s/it]14 / latent_view        : mean  0.79130 std  0.59608
+ 14 / latent_view        : mean  0.79130 std  0.59608
 14 / noise_pred         : mean  0.78223 std  0.59082
 
 15 / latent_view        : mean  0.79299 std  0.59293
@@ -398,7 +399,7 @@
 15 / latent_view        : mean  0.78687 std  0.59484
 15 / noise_pred         : mean  0.77588 std  0.58789
 
- 30%|███       | 15/50 [00:20<00:42,  1.22s/it]15 / latent_view        : mean  0.78853 std  0.59543
+ 15 / latent_view        : mean  0.78853 std  0.59543
 15 / noise_pred         : mean  0.77441 std  0.58789
 
 15 / latent_view        : mean  0.79050 std  0.59530
@@ -428,7 +429,7 @@
 16 / latent_view        : mean  0.78761 std  0.59459
 16 / noise_pred         : mean  0.77490 std  0.58838
 
- 32%|███▏      | 16/50 [00:21<00:41,  1.22s/it]16 / latent_view        : mean  0.78955 std  0.59438
+ 16 / latent_view        : mean  0.78955 std  0.59438
 16 / noise_pred         : mean  0.77979 std  0.59033
 
 17 / latent_view        : mean  0.79032 std  0.59101
@@ -452,7 +453,7 @@
 17 / latent_view        : mean  0.78486 std  0.59309
 17 / noise_pred         : mean  0.77734 std  0.58789
 
- 34%|███▍      | 17/50 [00:23<00:40,  1.22s/it]17 / latent_view        : mean  0.78656 std  0.59361
+ 17 / latent_view        : mean  0.78656 std  0.59361
 17 / noise_pred         : mean  0.77686 std  0.59033
 
 17 / latent_view        : mean  0.78847 std  0.59330
@@ -482,7 +483,7 @@
 18 / latent_view        : mean  0.78529 std  0.59247
 18 / noise_pred         : mean  0.77930 std  0.59277
 
- 36%|███▌      | 18/50 [00:24<00:39,  1.22s/it]18 / latent_view        : mean  0.78718 std  0.59205
+ 18 / latent_view        : mean  0.78718 std  0.59205
 18 / noise_pred         : mean  0.78320 std  0.59424
 
 19 / latent_view        : mean  0.78694 std  0.58881
@@ -506,7 +507,7 @@
 19 / latent_view        : mean  0.78216 std  0.59078
 19 / noise_pred         : mean  0.78320 std  0.59131
 
- 38%|███▊      | 19/50 [00:25<00:37,  1.22s/it]19 / latent_view        : mean  0.78376 std  0.59117
+ 19 / latent_view        : mean  0.78376 std  0.59117
 19 / noise_pred         : mean  0.78174 std  0.59424
 
 19 / latent_view        : mean  0.78561 std  0.59062
@@ -533,7 +534,7 @@
 20 / latent_view        : mean  0.78042 std  0.58936
 20 / noise_pred         : mean  0.78369 std  0.59277
 
- 40%|████      | 20/50 [00:26<00:36,  1.22s/it]20 / latent_view        : mean  0.78191 std  0.58972
+ 20 / latent_view        : mean  0.78191 std  0.58972
 20 / noise_pred         : mean  0.78369 std  0.59473
 
 20 / latent_view        : mean  0.78370 std  0.58905
@@ -563,7 +564,7 @@
 21 / latent_view        : mean  0.77975 std  0.58808
 21 / noise_pred         : mean  0.78467 std  0.59570
 
- 42%|████▏     | 21/50 [00:27<00:35,  1.22s/it]21 / latent_view        : mean  0.78148 std  0.58730
+ 21 / latent_view        : mean  0.78148 std  0.58730
 21 / noise_pred         : mean  0.78027 std  0.59180
 
 22 / latent_view        : mean  0.78023 std  0.58389
@@ -590,7 +591,7 @@
 22 / latent_view        : mean  0.77728 std  0.58623
 22 / noise_pred         : mean  0.78662 std  0.59717
 
- 44%|████▍     | 22/50 [00:29<00:34,  1.23s/it]22 / latent_view        : mean  0.77901 std  0.58538
+ 22 / latent_view        : mean  0.77901 std  0.58538
 22 / noise_pred         : mean  0.77637 std  0.58936
 
 23 / latent_view        : mean  0.77743 std  0.58192
@@ -613,7 +614,7 @@
 
 23 / latent_view        : mean  0.77343 std  0.58397
 23 / noise_pred         : mean  0.78564 std  0.59570
- 46%|████▌     | 23/50 [00:30<00:33,  1.23s/it]
+ 
 23 / latent_view        : mean  0.77445 std  0.58419
 23 / noise_pred         : mean  0.78809 std  0.59766
 
@@ -641,7 +642,7 @@
 24 / latent_view        : mean  0.77036 std  0.58174
 24 / noise_pred         : mean  0.78271 std  0.59424
 
- 48%|████▊     | 24/50 [00:31<00:31,  1.23s/it]24 / latent_view        : mean  0.77131 std  0.58201
+ 24 / latent_view        : mean  0.77131 std  0.58201
 24 / noise_pred         : mean  0.79297 std  0.60254
 
 24 / latent_view        : mean  0.77320 std  0.58105
@@ -671,7 +672,7 @@
 25 / latent_view        : mean  0.76806 std  0.57972
 25 / noise_pred         : mean  0.78662 std  0.59912
 
- 50%|█████     | 25/50 [00:32<00:30,  1.23s/it]25 / latent_view        : mean  0.77005 std  0.57871
+ 25 / latent_view        : mean  0.77005 std  0.57871
 25 / noise_pred         : mean  0.77441 std  0.58838
 
 26 / latent_view        : mean  0.76675 std  0.57496
@@ -695,7 +696,7 @@
 26 / latent_view        : mean  0.76388 std  0.57699
 26 / noise_pred         : mean  0.77588 std  0.59180
 
- 52%|█████▏    | 26/50 [00:34<00:29,  1.23s/it]26 / latent_view        : mean  0.76468 std  0.57722
+ 26 / latent_view        : mean  0.76468 std  0.57722
 26 / noise_pred         : mean  0.77637 std  0.59180
 
 26 / latent_view        : mean  0.76670 std  0.57617
@@ -725,7 +726,7 @@
 27 / latent_view        : mean  0.76128 std  0.57451
 27 / noise_pred         : mean  0.77002 std  0.58740
 
- 54%|█████▍    | 27/50 [00:35<00:28,  1.23s/it]27 / latent_view        : mean  0.76333 std  0.57347
+ 27 / latent_view        : mean  0.76333 std  0.57347
 27 / noise_pred         : mean  0.76709 std  0.58350
 
 28 / latent_view        : mean  0.75904 std  0.56983
@@ -749,7 +750,7 @@
 28 / latent_view        : mean  0.75729 std  0.57154
 28 / noise_pred         : mean  0.76709 std  0.58545
 
- 56%|█████▌    | 28/50 [00:36<00:27,  1.23s/it]28 / latent_view        : mean  0.75786 std  0.57162
+ 28 / latent_view        : mean  0.75786 std  0.57162
 28 / noise_pred         : mean  0.76416 std  0.58398
 
 28 / latent_view        : mean  0.75998 std  0.57066
@@ -779,7 +780,7 @@
 29 / latent_view        : mean  0.75436 std  0.56865
 29 / noise_pred         : mean  0.75928 std  0.58057
 
- 58%|█████▊    | 29/50 [00:37<00:25,  1.24s/it]29 / latent_view        : mean  0.75655 std  0.56777
+ 29 / latent_view        : mean  0.75655 std  0.56777
 29 / noise_pred         : mean  0.75391 std  0.57373
 
 30 / latent_view        : mean  0.75109 std  0.56431
@@ -803,7 +804,7 @@
 30 / latent_view        : mean  0.75049 std  0.56578
 30 / noise_pred         : mean  0.75586 std  0.57715
 
- 60%|██████    | 30/50 [00:39<00:24,  1.24s/it]30 / latent_view        : mean  0.75079 std  0.56568
+ 30 / latent_view        : mean  0.75079 std  0.56568
 30 / noise_pred         : mean  0.75342 std  0.57666
 
 30 / latent_view        : mean  0.75305 std  0.56481
@@ -833,7 +834,7 @@
 31 / latent_view        : mean  0.74716 std  0.56275
 31 / noise_pred         : mean  0.74756 std  0.57227
 
- 62%|██████▏   | 31/50 [00:40<00:23,  1.24s/it]31 / latent_view        : mean  0.74946 std  0.56183
+ 31 / latent_view        : mean  0.74946 std  0.56183
 31 / noise_pred         : mean  0.73877 std  0.56201
 
 32 / latent_view        : mean  0.74293 std  0.55864
@@ -860,7 +861,7 @@
 32 / latent_view        : mean  0.74355 std  0.55974
 32 / noise_pred         : mean  0.74121 std  0.56787
 
- 64%|██████▍   | 32/50 [00:41<00:22,  1.24s/it]32 / latent_view        : mean  0.74586 std  0.55881
+ 32 / latent_view        : mean  0.74586 std  0.55881
 32 / noise_pred         : mean  0.73193 std  0.55811
 
 33 / latent_view        : mean  0.73883 std  0.55575
@@ -886,7 +887,7 @@
 
 33 / latent_view        : mean  0.73992 std  0.55668
 33 / noise_pred         : mean  0.73389 std  0.56445
- 66%|██████▌   | 33/50 [00:42<00:21,  1.25s/it]
+ 
 33 / latent_view        : mean  0.74229 std  0.55569
 33 / noise_pred         : mean  0.72461 std  0.55469
 
@@ -911,7 +912,7 @@
 34 / latent_view        : mean  0.73640 std  0.55413
 34 / noise_pred         : mean  0.72998 std  0.56055
 
- 68%|██████▊   | 34/50 [00:44<00:19,  1.25s/it]34 / latent_view        : mean  0.73633 std  0.55359
+ 34 / latent_view        : mean  0.73633 std  0.55359
 34 / noise_pred         : mean  0.72656 std  0.56104
 
 34 / latent_view        : mean  0.73876 std  0.55250
@@ -941,7 +942,7 @@
 35 / latent_view        : mean  0.73275 std  0.55049
 35 / noise_pred         : mean  0.71973 std  0.55762
 
- 70%|███████   | 35/50 [00:45<00:18,  1.25s/it]35 / latent_view        : mean  0.73527 std  0.54924
+ 35 / latent_view        : mean  0.73527 std  0.54924
 35 / noise_pred         : mean  0.71045 std  0.54639
 
 36 / latent_view        : mean  0.72646 std  0.54728
@@ -965,7 +966,7 @@
 36 / latent_view        : mean  0.72949 std  0.54823
 36 / noise_pred         : mean  0.71729 std  0.55371
 
- 72%|███████▏  | 36/50 [00:46<00:17,  1.25s/it]36 / latent_view        : mean  0.72924 std  0.54736
+ 36 / latent_view        : mean  0.72924 std  0.54736
 36 / noise_pred         : mean  0.71289 std  0.55322
 
 36 / latent_view        : mean  0.73181 std  0.54594
@@ -995,7 +996,7 @@
 37 / latent_view        : mean  0.72576 std  0.54427
 37 / noise_pred         : mean  0.70654 std  0.54883
 
- 74%|███████▍  | 37/50 [00:47<00:16,  1.25s/it]37 / latent_view        : mean  0.72830 std  0.54272
+ 37 / latent_view        : mean  0.72830 std  0.54272
 37 / noise_pred         : mean  0.69434 std  0.53467
 
 38 / latent_view        : mean  0.71855 std  0.54147
@@ -1019,7 +1020,7 @@
 38 / latent_view        : mean  0.72293 std  0.54229
 38 / noise_pred         : mean  0.70361 std  0.54395
 
- 76%|███████▌  | 38/50 [00:49<00:15,  1.25s/it]38 / latent_view        : mean  0.72238 std  0.54112
+ 38 / latent_view        : mean  0.72238 std  0.54112
 38 / noise_pred         : mean  0.69824 std  0.54297
 
 38 / latent_view        : mean  0.72489 std  0.53944
@@ -1049,7 +1050,7 @@
 39 / latent_view        : mean  0.71906 std  0.53799
 39 / noise_pred         : mean  0.68945 std  0.53564
 
- 78%|███████▊  | 39/50 [00:50<00:13,  1.25s/it]39 / latent_view        : mean  0.72152 std  0.53616
+ 39 / latent_view        : mean  0.72152 std  0.53616
 39 / noise_pred         : mean  0.67627 std  0.52197
 
 40 / latent_view        : mean  0.71108 std  0.53545
@@ -1073,7 +1074,7 @@
 40 / latent_view        : mean  0.71648 std  0.53651
 40 / noise_pred         : mean  0.68359 std  0.52783
 
- 80%|████████  | 40/50 [00:51<00:12,  1.25s/it]40 / latent_view        : mean  0.71580 std  0.53489
+ 40 / latent_view        : mean  0.71580 std  0.53489
 40 / noise_pred         : mean  0.67969 std  0.52832
 
 40 / latent_view        : mean  0.71816 std  0.53295
@@ -1103,7 +1104,7 @@
 41 / latent_view        : mean  0.71264 std  0.53179
 41 / noise_pred         : mean  0.66943 std  0.52051
 
- 82%|████████▏ | 41/50 [00:52<00:11,  1.26s/it]41 / latent_view        : mean  0.71493 std  0.52974
+ 41 / latent_view        : mean  0.71493 std  0.52974
 41 / noise_pred         : mean  0.65723 std  0.50830
 
 42 / latent_view        : mean  0.70422 std  0.52908
@@ -1129,7 +1130,7 @@
 
 42 / latent_view        : mean  0.70966 std  0.52864
 42 / noise_pred         : mean  0.65967 std  0.51514
- 84%|████████▍ | 42/50 [00:54<00:10,  1.26s/it]
+ 
 42 / latent_view        : mean  0.71187 std  0.52644
 42 / noise_pred         : mean  0.64746 std  0.50146
 
@@ -1156,7 +1157,7 @@
 
 43 / latent_view        : mean  0.70682 std  0.52550
 43 / noise_pred         : mean  0.64551 std  0.50244
- 86%|████████▌ | 43/50 [00:55<00:08,  1.26s/it]
+ 
 43 / latent_view        : mean  0.70899 std  0.52315
 43 / noise_pred         : mean  0.63623 std  0.49292
 
@@ -1184,7 +1185,7 @@
 44 / latent_view        : mean  0.70415 std  0.52232
 44 / noise_pred         : mean  0.62988 std  0.49048
 
- 88%|████████▊ | 44/50 [00:56<00:07,  1.26s/it]44 / latent_view        : mean  0.70627 std  0.51985
+ 44 / latent_view        : mean  0.70627 std  0.51985
 44 / noise_pred         : mean  0.62012 std  0.48071
 
 45 / latent_view        : mean  0.69541 std  0.51855
@@ -1208,7 +1209,7 @@
 45 / latent_view        : mean  0.70302 std  0.52074
 45 / noise_pred         : mean  0.61719 std  0.47705
 
- 90%|█████████ | 45/50 [00:57<00:06,  1.26s/it]45 / latent_view        : mean  0.70161 std  0.51918
+ 45 / latent_view        : mean  0.70161 std  0.51918
 45 / noise_pred         : mean  0.61279 std  0.47754
 
 45 / latent_view        : mean  0.70368 std  0.51656
@@ -1237,7 +1238,7 @@
 
 46 / latent_view        : mean  0.69914 std  0.51612
 46 / noise_pred         : mean  0.58936 std  0.45874
- 92%|█████████▏| 46/50 [00:59<00:05,  1.29s/it]
+ 
 46 / latent_view        : mean  0.70114 std  0.51342
 46 / noise_pred         : mean  0.58057 std  0.45117
 
@@ -1264,7 +1265,7 @@
 
 47 / latent_view        : mean  0.69668 std  0.51313
 47 / noise_pred         : mean  0.55908 std  0.43604
- 94%|█████████▍| 47/50 [01:00<00:03,  1.31s/it]
+ 
 47 / latent_view        : mean  0.69859 std  0.51034
 47 / noise_pred         : mean  0.55176 std  0.43066
 
@@ -1289,7 +1290,7 @@
 48 / latent_view        : mean  0.69588 std  0.51148
 48 / noise_pred         : mean  0.52344 std  0.40991
 
- 96%|█████████▌| 48/50 [01:01<00:02,  1.33s/it]48 / latent_view        : mean  0.69416 std  0.51011
+ 48 / latent_view        : mean  0.69416 std  0.51011
 48 / noise_pred         : mean  0.51758 std  0.40601
 
 48 / latent_view        : mean  0.69597 std  0.50729
@@ -1322,8 +1323,6 @@
 49 / latent_view        : mean  0.69307 std  0.50423
 49 / noise_pred         : mean  0.44434 std  0.35425
 
- 98%|█████████▊| 49/50 [01:03<00:01,  1.31s/it]
-
 50 / latent_view        : mean  0.68000 std  0.49808
 50 / noise_pred         : mean  0.18372 std  0.16003
 
@@ -1350,4 +1349,3 @@
 
 50 / latent_view        : mean  0.68806 std  0.49972
 50 / noise_pred         : mean  0.19995 std  0.16882
-100%|██████████| 50/50 [01:04<00:00,  1.29s/it]
