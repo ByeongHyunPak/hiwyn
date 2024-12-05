@@ -130,7 +130,8 @@ def compute_erp_up_noise_pred(pers_noise_pred, erp2pers_ind, fin_v_num):
     erp_up_noise_pred = torch.zeros(B*C, H_erp_up*W_erp_up, device=device)
     
     # Normalize perspective noise
-    pers_noise_pred = pers_noise_pred / torch.sqrt(fin_v_num)
+    # pers_noise_pred = pers_noise_pred / torch.sqrt(fin_v_num)
+    pers_noise_pred = pers_noise_pred
     pers_noise_pred_flat = pers_noise_pred.reshape(B*C, -1)
 
     # Avoid creating a padded tensor unnecessarily
