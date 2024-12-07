@@ -36,7 +36,7 @@ def cond_noise_sampling(src_noise, level=3):
 
     up_noise = upscaled_means / up_factor + mean_removed_rand
 
-    return up_noise
+    return up_noise # sqrt(N_k) W(A_k): sub-pixel noise scaled with sqrt(N_k) ~ N(0, 1)
 
 def erp2pers_latent_warping(erp_noise, HW_pers, views, glctx):
     device = erp_noise.device
@@ -120,6 +120,76 @@ def erp2pers_latent_warping(erp_noise, HW_pers, views, glctx):
 
     return res, inds, fin_v_num
 
+
+def identity_latent_warping(up_noise, HW_target, glctx):
+    device = up_noise.device
+    B, C, H_erp, W_erp = up_noise.shape
+    H_target, W_target = HW_target
+
+    # Defining the partitioned polygons for target noise map
+    tr_H_target, tr_W_target = 2 * H_target + 1, 2 * W_target + 1
+    i, j = torch.meshgrid(
+        torch.arange(tr_H_target, dtype=torch.int32),
+        torch.arange(tr_W_target, dtype=torch.int32),
+        indexing="ij")
+    mesh_idxs = torch.stack((i, j), dim=-1).to(device)
+    reshaped_mesh_idxs = mesh_idxs.reshape(-1,2)
+    
+    front_tri_verts = torch.tensor([
+            [0, 1, 1+tr_W_target], 
+            [0, tr_W_target, 1+tr_W_target], 
+            [tr_W_target, 1+tr_W_target, 1+2*tr_W_target], 
+            [tr_W_target, 2*tr_W_target, 1+2*tr_W_target]], 
+            device=device)
+    per_tri_verts = torch.cat((front_tri_verts, front_tri_verts + 1), dim=0)
+    width = torch.arange(0, tr_W_target - 1, 2)
+    height = torch.arange(0, tr_H_target-1, 2) * tr_W_target
+    start_idxs = (width[None,...] + height[...,None]).reshape(-1,1).to(device)
+    vertices = (start_idxs.repeat(1, 8)[..., None] + per_tri_verts[None, ...]).reshape(-1, 3)
+
+    res = []
+    inds = []
+    
+    idx_y = reshaped_mesh_idxs[..., 0].int()
+    idx_x = reshaped_mesh_idxs[..., 1].int()
+    warped_coords = mesh_idxs[idx_y, idx_x].fliplr()
+
+    len_grid = idx_y.shape[0]
+    zeros = torch.zeros(len_grid, 1).to(device)
+    ones = torch.ones(len_grid, 1).to(device)   
+    warped_vtx_pos = torch.cat((warped_coords, zeros, ones), dim=-1)
+    warped_vtx_pos = warped_vtx_pos[None,...].to("cuda")
+    vertices = vertices.int().to("cuda")
+
+    resolution = [H_erp, W_erp]
+    with torch.no_grad():
+        rast_out, _ = dr.rasterize(glctx, warped_vtx_pos, vertices, resolution=resolution)
+    rast = rast_out[:,:,:,3:].permute(0,3,1,2).to(torch.int64)
+
+    # Finding pixel indices in cond-upsampled map
+    indices = (rast - 1) // 8 + 1 # there is 8 triangles per pixel
+    erp_up_noise_flat = up_noise.reshape(B*C, -1)
+    ones_flat = torch.ones_like(erp_up_noise_flat[:1])
+    indices_flat = indices.reshape(1, -1).to(torch.int64)
+
+    # Get warped target noise
+    fin_v_val = torch.zeros(B*C, H_target*W_target+1, device=device)\
+        .scatter_add_(1, index=indices_flat.repeat(B*C, 1), src=erp_up_noise_flat)[..., 1:]
+    fin_v_num = torch.zeros(1, H_target*W_target+1, device=device)\
+        .scatter_add_(1, index=indices_flat, src=ones_flat)[..., 1:]
+    assert fin_v_num.min() != 0, ValueError
+
+    final_values = fin_v_val / torch.sqrt(fin_v_num)
+    pers_warped_noise = final_values.reshape(B, C, H_target, W_target).float()
+    pers_warped_noise = pers_warped_noise.to(device)
+
+    res.append(pers_warped_noise)
+    inds.append(indices.reshape(*resolution))
+    fin_v_num = fin_v_num.reshape(1, 1, H_target, W_target)
+
+    return res, inds, fin_v_num
+
+
 def compute_erp_up_noise_pred(pers_noise_pred, erp2pers_ind, fin_v_num):
 
     device = pers_noise_pred.device
@@ -129,10 +199,10 @@ def compute_erp_up_noise_pred(pers_noise_pred, erp2pers_ind, fin_v_num):
     # Initialize result tensors in smaller chunks
     erp_up_noise_pred = torch.zeros(B*C, H_erp_up*W_erp_up, device=device)
     
-    # Normalize perspective noise
-    pers_noise_pred = pers_noise_pred / torch.sqrt(fin_v_num)
-    # pers_noise_pred = pers_noise_pred
-    # pers_noise_pred = pers_noise_pred / 8 # up_factor
+    # Normalize pers. noise (x) / No noramlize pers. noise (o)
+    ### Because erp_up_noise_T ~ N(0, I) & pers_noise_pred ~ N(0, I)
+    # pers_noise_pred = pers_noise_pred / torch.sqrt(fin_v_num) # (x)
+    pers_noise_pred = pers_noise_pred # (o)
     pers_noise_pred_flat = pers_noise_pred.reshape(B*C, -1)
 
     # Avoid creating a padded tensor unnecessarily
