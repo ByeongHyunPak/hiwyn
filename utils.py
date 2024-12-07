@@ -147,12 +147,18 @@ def identity_latent_warping(up_noise, HW_target, glctx):
     start_idxs = (width[None,...] + height[...,None]).reshape(-1,1).to(device)
     vertices = (start_idxs.repeat(1, 8)[..., None] + per_tri_verts[None, ...]).reshape(-1, 3)
 
+    target_i, target_j = torch.meshgrid(
+        torch.linspace(-1, 1, tr_H_target, dtype=torch.float32),
+        torch.linspace(-1, 1, tr_W_target, dtype=torch.float32),
+        indexing="ij")
+    target_grid = torch.stack((target_i, target_j), dim=-1).to(device)
+
     res = []
     inds = []
     
     idx_y = reshaped_mesh_idxs[..., 0].int()
     idx_x = reshaped_mesh_idxs[..., 1].int()
-    warped_coords = mesh_idxs[idx_y, idx_x].fliplr()
+    warped_coords = target_grid[idx_y, idx_x].fliplr()
 
     len_grid = idx_y.shape[0]
     zeros = torch.zeros(len_grid, 1).to(device)
