@@ -38,6 +38,8 @@ def cond_noise_sampling(src_noise, level=3):
 
     return up_noise # sqrt(N_k) W(A_k): sub-pixel noise scaled with sqrt(N_k) ~ N(0, 1)
 
+
+# deprecated
 def erp2pers_latent_warping(erp_noise, HW_pers, views, glctx):
     device = erp_noise.device
     B, C, H_erp, W_erp = erp_noise.shape
@@ -121,6 +123,8 @@ def erp2pers_latent_warping(erp_noise, HW_pers, views, glctx):
     return res, inds, fin_v_num
 
 
+
+# deprecated
 def identity_latent_warping(up_noise, HW_target, glctx):
     device = up_noise.device
     B, C, H_erp, W_erp = up_noise.shape
@@ -196,6 +200,7 @@ def identity_latent_warping(up_noise, HW_target, glctx):
     return res, inds, fin_v_num
 
 
+# deprecated
 def compute_erp_up_noise_pred(pers_noise_pred, erp2pers_ind, fin_v_num):
 
     device = pers_noise_pred.device
@@ -227,6 +232,8 @@ def compute_erp_up_noise_pred(pers_noise_pred, erp2pers_ind, fin_v_num):
 
     return erp_up_noise_pred, valid_mask
 
+
+# deprecated
 def compute_erp_up_noise_denoised(pers_noise_pred, erp2pers_ind, fin_v_num):
 
     device = pers_noise_pred.device
