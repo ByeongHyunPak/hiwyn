@@ -136,8 +136,10 @@ class ERPDiffusion_0_1_5(ERPDiffusion_0_1_0):
             # get ERP class direction score
             erp_noise_pred_uncond, erp_noise_pred_cond = erp_noise_pred.chunk(2)
             erp_class_direc_score = erp_noise_pred_cond - erp_noise_pred_uncond # 1, 4, 512, 1024
-            erp_class_direc_score = self.cond_noise_sampling(erp_class_direc_score)
-            pers_j_class_direc_scores = self.discrete_warping(erp_class_direc_score) # N x [1, 4, 64, 64]
+            # erp_class_direc_score = erp_noise_pred_cond # 1, 4, 512, 1024
+            # erp_class_direc_score = self.cond_noise_sampling(erp_class_direc_score)
+            # pers_j_class_direc_scores = self.discrete_warping(erp_class_direc_score) # N x [1, 4, 64, 64]
+            pers_j_class_direc_scores = self.erp_to_img_j(erp_class_direc_score, (64, 64))
 
             for j, w_j in enumerate(w_js):
 
@@ -147,7 +149,8 @@ class ERPDiffusion_0_1_5(ERPDiffusion_0_1_0):
 
                 # perform guidance
                 noise_pred_uncond, noise_pred_cond = noise_pred.chunk(2)
-                noise_pred = noise_pred_uncond + guidance_scale * ((noise_pred_cond - noise_pred_uncond) + pers_j_class_direc_scores[j]) / 2 # add erp cond noise
+                noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_cond - noise_pred_uncond) + guidance_scale/2 * pers_j_class_direc_scores[j] # add erp cond noise
+                # noise_pred = noise_pred_uncond + guidance_scale * ((noise_pred_cond + pers_j_class_direc_scores[j])/2 - noise_pred_uncond) # add erp cond noise
 
                 # 5) Get w'^t-1_j, w'^0_j
                 ddim_output = self.scheduler.step(noise_pred, t, w_j)
