@@ -10,8 +10,8 @@ class ERPDiffusion_0_1_2(ERPDiffusion_0_1_1):
     """ ERPDiffusion_0_1_1 + Rotating view directions
     """
     
-    def __init__(self, device, sd_version='2.0', hf_key=None):
-        super().__init__(device, sd_version, hf_key)
+    def __init__(self, device, sd_version='2.0', hf_key=None, half_precision=False):
+        super().__init__(device, sd_version, hf_key, half_precision, half_precision)
         self.up_level = 3
         
         self.views = [

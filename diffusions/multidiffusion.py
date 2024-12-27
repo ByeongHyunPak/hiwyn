@@ -10,6 +10,9 @@ import torchvision.transforms as T
 import argparse
 from tqdm import tqdm
 
+from diffusers import StableDiffusionPipeline
+# from DeepCache import DeepCacheSDHelper
+
 def seed_everything(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -32,7 +35,7 @@ def get_views(panorama_height, panorama_width, window_size=64, stride=8):
     return views
 
 class MultiDiffusion(nn.Module):
-    def __init__(self, device, sd_version='2.0', hf_key=None):
+    def __init__(self, device, sd_version='2.0', hf_key=None, half_precision=False):
         super().__init__()
 
         self.device = device
@@ -51,13 +54,29 @@ class MultiDiffusion(nn.Module):
         else:
             raise ValueError(f'Stable-diffusion version {self.sd_version} not supported.')
 
-        # Create model
-        self.vae = AutoencoderKL.from_pretrained(model_key, subfolder="vae").to(self.device)
-        self.tokenizer = CLIPTokenizer.from_pretrained(model_key, subfolder="tokenizer")
-        self.text_encoder = CLIPTextModel.from_pretrained(model_key, subfolder="text_encoder").to(self.device)
-        self.unet = UNet2DConditionModel.from_pretrained(model_key, subfolder="unet").to(self.device)
+        # https://github.com/KAIST-Visual-AI-Group/SyncTweedies/blob/dc443ad4064601164a4a13d0809c473b70215eac/synctweedies/model/base_model.py#L100
+        ddim = DDIMScheduler.from_pretrained(model_key, subfolder="scheduler")
+        pipe = StableDiffusionPipeline.from_pretrained(model_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32)).to("cuda")
 
-        self.scheduler = DDIMScheduler.from_pretrained(model_key, subfolder="scheduler")
+        # print(pipe.components.keys()) # 'vae', 'text_encoder', 'tokenizer', 'unet', 'scheduler', 'safety_checker', 'feature_extractor', 'image_encoder
+        self.vae, self.text_encoder, self.tokenizer, self.unet, self.scheduler, _, _, _ =  pipe.components.values()
+
+        # # DeepCache (not working in multidiffusion)
+        # # TODO: implement per-patch caching
+        # helper = DeepCacheSDHelper(pipe=pipe)
+        # helper.set_params(
+        #     cache_interval=3,
+        #     cache_branch_id=0,
+        # )
+        # helper.enable()
+
+        # # Create model (MultiDiffusion original code)
+        # self.vae = AutoencoderKL.from_pretrained(model_key, subfolder="vae").to(self.device)
+        # self.tokenizer = CLIPTokenizer.from_pretrained(model_key, subfolder="tokenizer")
+        # self.text_encoder = CLIPTextModel.from_pretrained(model_key, subfolder="text_encoder").to(self.device)
+        # self.unet = UNet2DConditionModel.from_pretrained(model_key, subfolder="unet").to(self.device)
+
+        # self.scheduler = DDIMScheduler.from_pretrained(model_key, subfolder="scheduler")
 
         print(f'[INFO] loaded stable diffusion!')
 

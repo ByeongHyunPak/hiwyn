@@ -26,6 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--steps', type=int, default=50)
     parser.add_argument('--negative', type=str, default='')
     parser.add_argument('--erp_hw', type=int, nargs=2, default=[1024, 2048])
+    parser.add_argument('--half_precision', type=bool, default=True)
     
     # options
     parser.add_argument('--erpdm_version', type=str, default='0.1.1')
@@ -58,28 +59,29 @@ if __name__ == '__main__':
         print(*directions[-args.num_theta[i]:])   
     
     # get ERPDiffusion model
-    ERPDiffusion = globals()[f"ERPDiffusion_{args.erpdm_version.replace('.', '_')}"]   
+    with torch.autocast(device_type='cuda', dtype=(torch.float16 if args.half_precision else torch.float32)):
+        ERPDiffusion = globals()[f"ERPDiffusion_{args.erpdm_version.replace('.', '_')}"]   
 
-    try:
-        H, W = args.erp_hw
-        sd = ERPDiffusion(device=torch.device('cuda'), sd_version=args.sd_version, fov=args.fov, views=directions) 
-        outputs = sd.text2erp(
-            args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
+        try:
+            H, W = args.erp_hw
+            sd = ERPDiffusion(device=torch.device('cuda'), sd_version=args.sd_version, fov=args.fov, views=directions, half_precision=args.half_precision) 
+            outputs = sd.text2erp(
+                args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
+            
+            del outputs
+            del sd
+            del ERPDiffusion
+            torch.cuda.empty_cache()
+            gc.collect()
+            torch.cuda.empty_cache()
+            
+        except Exception:
+            
+            print(traceback.format_exc()) 
+            del sd
+            del ERPDiffusion
+            torch.cuda.empty_cache()
+            gc.collect()
+            torch.cuda.empty_cache()
         
-        del outputs
-        del sd
-        del ERPDiffusion
-        torch.cuda.empty_cache()
-        gc.collect()
-        torch.cuda.empty_cache()
         
-    except Exception:
-        
-        print(traceback.format_exc()) 
-        del sd
-        del ERPDiffusion
-        torch.cuda.empty_cache()
-        gc.collect()
-        torch.cuda.empty_cache()
-       
-       
