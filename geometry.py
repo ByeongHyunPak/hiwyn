@@ -100,8 +100,8 @@ def gridy2x_erp2pers(gridy, HWy, HWx, THETA, PHI, FOVy, FOVx):
     gridy = torch.mm(R1_inv, gridy.permute(1, 0)).permute(1, 0)
 
     ### sphere to gridx
-    z0 = gridy[:, 2] / gridy[:, 0]
-    y0 = gridy[:, 1] / gridy[:, 0]
+    z0 = (gridy[:, 2] / gridy[:, 0]) / np.tan(np.radians(FOVx / 2.0))
+    y0 = (gridy[:, 1] / gridy[:, 0]) / np.tan(np.radians(FOVx / 2.0))
     gridx = torch.stack((z0, y0), dim=-1).float()
 
     # masky
