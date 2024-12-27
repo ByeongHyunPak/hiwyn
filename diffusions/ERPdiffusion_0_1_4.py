@@ -137,7 +137,7 @@ class ERPDiffusion_0_1_4(ERPDiffusion_0_1_0):
                 noise_pred_uncond, noise_pred_cond = noise_pred.chunk(2)
                 ### 0.1.4 - control guidance_scale along with phi
                 theta, phi = self.views[j]
-                guidance_scale  = np.cos(phi) * guidance_scale
+                guidance_scale  = torch.cos(phi) * guidance_scale
                 noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_cond - noise_pred_uncond)
 
                 # 5) Get w'^t-1_j, w'^0_j
