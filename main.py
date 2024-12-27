@@ -58,7 +58,28 @@ if __name__ == '__main__':
         print(*directions[-args.num_theta[i]:])   
     
     # get ERPDiffusion model
-    H, W = args.erp_hw
     ERPDiffusion = globals()[f"ERPDiffusion_{args.erpdm_version.replace('.', '_')}"]   
-    sd = ERPDiffusion(device=torch.device('cuda'), sd_version=args.sd_version, fov=args.fov, views=directions) 
-    outputs = sd.text2erp(args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
+
+    try:
+        H, W = args.erp_hw
+        sd = ERPDiffusion(device=torch.device('cuda'), sd_version=args.sd_version, fov=args.fov, views=directions) 
+        outputs = sd.text2erp(
+            args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
+        
+        del outputs
+        del sd
+        del ERPDiffusion
+        torch.cuda.empty_cache()
+        gc.collect()
+        torch.cuda.empty_cache()
+        
+    except Exception:
+        
+        print(traceback.format_exc()) 
+        del sd
+        del ERPDiffusion
+        torch.cuda.empty_cache()
+        gc.collect()
+        torch.cuda.empty_cache()
+       
+       
