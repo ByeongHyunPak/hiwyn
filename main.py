@@ -21,15 +21,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # defaults
-    parser.add_argument('--img_dir', default="imgs")
-    parser.add_argument('--sd_version', default='2.0')
-    parser.add_argument('--steps', default=50)
-    parser.add_argument('--negative', default='')
-    parser.add_argument('--erp_hw', nargs=2, default=[1024, 2048])
+    parser.add_argument('--img_dir', type=str, default="imgs")
+    parser.add_argument('--sd_version', type=str, default='2.0')
+    parser.add_argument('--steps', type=int, default=50)
+    parser.add_argument('--negative', type=str, default='')
+    parser.add_argument('--erp_hw', type=int, nargs=2, default=[1024, 2048])
     
     # options
-    parser.add_argument('--erpdm_version', default='0.1.1')
-    parser.add_argument('--prompt', default="A photo of realistic cityscape of Florence")
+    parser.add_argument('--erpdm_version', type=str, default='0.1.1')
+    parser.add_argument('--prompt', type=str, default="A photo of realistic cityscape of Florence")
     parser.add_argument('--theta_range', nargs=2, type=int, default=[0, 360])
     parser.add_argument('--num_theta', nargs="+", type=int, default=[3, 4, 6, 4, 3])
     parser.add_argument('--phi_range', nargs=2, type=int, default=[-45, 45])
