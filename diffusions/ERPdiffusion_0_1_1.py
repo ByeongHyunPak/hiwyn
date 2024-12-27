@@ -52,7 +52,8 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
         img_j_to_erp_img = F.grid_sample(
             img_j,
             erp2pers_grid.unsqueeze(0).flip(-1),
-            mode="bicubic", align_corners=False)
+            mode="bicubic", align_corners=False,
+            padding_mode="reflection")
         img_j_to_erp_img *= valid_mask
 
         img_j_to_erp_img.clamp_(0, 1)
