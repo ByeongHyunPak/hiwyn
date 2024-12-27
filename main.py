@@ -30,10 +30,10 @@ if __name__ == '__main__':
     # options
     parser.add_argument('--erpdm_version', default='0.1.1')
     parser.add_argument('--prompt', default="A photo of realistic cityscape of Florence")
-    parser.add_argument('--theta_range', nargs=2, default=[0, 360])
-    parser.add_argument('--num_theta', nargs="+", default=[3, 4, 6, 4, 3])
-    parser.add_argument('--phi_range', nargs=2, default=[-45, 45])
-    parser.add_argument('--num_phi', default=5)
+    parser.add_argument('--theta_range', nargs=2, type=int, default=[0, 360])
+    parser.add_argument('--num_theta', nargs="+", type=int, default=[3, 4, 6, 4, 3])
+    parser.add_argument('--phi_range', nargs=2, type=int, default=[-45, 45])
+    parser.add_argument('--num_phi', type=int, default=5)
     
     args = parser.parse_args()
     
