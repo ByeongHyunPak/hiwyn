@@ -136,8 +136,11 @@ class ERPDiffusion_0_1_4(ERPDiffusion_0_1_0):
                 # perform guidance
                 noise_pred_uncond, noise_pred_cond = noise_pred.chunk(2)
                 ### 0.1.4 - control guidance_scale along with phi
+                # phi_rad = torch.tensor([self.views[j][1]], dtype=torch.float32, device=self.device) * torch.pi / 180
+                # guidance_scale  = torch.cos(phi_rad) * guidance_scale
+                # guidance_scale = guidance_scale - (torch.sin(phi_rad)**2)
                 phi_rad = torch.tensor([self.views[j][1]], dtype=torch.float32, device=self.device) * torch.pi / 180
-                guidance_scale  = torch.cos(phi_rad) * guidance_scale
+                guidance_scale = guidance_scale - torch.sin(2*phi_rad)
                 noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_cond - noise_pred_uncond)
 
                 # 5) Get w'^t-1_j, w'^0_j
