@@ -17,8 +17,8 @@ from IPython.display import Image
 from torchvision.transforms import ToPILImage, ToTensor
 from einops import rearrange, reduce, repeat
 
-from multidiffusion import MultiDiffusion
-from utils import cond_noise_sampling, erp2pers_noise_warping, compute_erp_up_noise_pred
+from diffusions.multidiffusion import MultiDiffusion
+from deprecated.utils import cond_noise_sampling, erp2pers_noise_warping, compute_erp_up_noise_pred
 
 class ERPMultiDiffusion_v3_3(MultiDiffusion):
     
