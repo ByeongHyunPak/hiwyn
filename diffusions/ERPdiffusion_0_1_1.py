@@ -5,11 +5,11 @@ import torch.nn.functional as F
 from tqdm import tqdm
 from torchvision.transforms import ToPILImage
 
-from diffusions import ERPdiffusion_0_1_0
+from diffusions import ERPDiffusion_0_1_0
 from geometry import make_coord, gridy2x_erp2pers, gridy2x_pers2erp
 
-class HIWYN_MD_ERP2PERS_0_1_1(ERPdiffusion_0_1_0):
-    """ HIWYN + SyncTweedies (fusion on decoder(w_0), not w_0(=ERPdiffusion_0_1_0))
+class HIWYN_MD_ERP2PERS_0_1_1(ERPDiffusion_0_1_0):
+    """ HIWYN + SyncTweedies (fusion on decoder(w_0), not w_0(=ERPDiffusion_0_1_0))
     """
     
     def __init__(self, 
