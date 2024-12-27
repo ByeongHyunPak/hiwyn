@@ -6,7 +6,7 @@ from torchvision.transforms import ToPILImage
 
 from diffusions import ERPDiffusion_0_1_1
 
-class HIWYN_MD_ERP2PERS_0_1_2(ERPDiffusion_0_1_1):
+class ERPDiffusion_0_1_2(ERPDiffusion_0_1_1):
     """ ERPDiffusion_0_1_1 + Rotating view directions
     """
     
