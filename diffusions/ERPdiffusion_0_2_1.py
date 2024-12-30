@@ -95,7 +95,7 @@ class ERPDiffusion_0_2_1(ERPDiffusion_0_1_1):
                 ToPILImage()(w_j_original[0].cpu()).save(f'/{save_dir}/{i+1:0>2}/w^0_{theta}_{phi}.png')
 
                 # 6) inverse mapping w -> x
-                x_erp_up_j, mask_x_j = self.img_j_to_erp(w_j_denoised, j, erp_HW=x_erp_up.shape[-2:])
+                x_erp_up_j, mask_x_j = self.img_j_to_erp(w_j_original, j, erp_HW=x_erp_up.shape[-2:])
 
                 value[:, :] += x_erp_up_j * mask_x_j
                 count[:, :] += mask_x_j
