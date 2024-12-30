@@ -40,7 +40,7 @@ class MultiDiffusion(nn.Module):
             self.vae, self.text_encoder, self.tokenizer, self.unet, self.scheduler, _, _, _ =  pipe.components.values()
             self.encode_prompt = lambda prompt, negative_prompt: self.stable_diffusion_encode_prompt(prompt, negative_prompt)
             self.resolution_factor = 8
-        elif self.mode == MODEL_TYPE_STABLE_DIFFUSION:
+        elif self.mode == MODEL_TYPE_DEEPFLOYD:
             pipe = DiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32)).to("cuda")
             self.tokenizer, self.text_encoder, self.unet, self.scheduler, _, _, _ =  pipe.components.values()
             self.encode_prompt = lambda prompt, negative_prompt: pipe.encode_prompt(prompt, do_classifier_free_guidance=True, num_images_per_prompt=1, device=self.device, negative_prompt=negative_prompt)
