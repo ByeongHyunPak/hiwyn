@@ -100,7 +100,10 @@ class MultiDiffusion(nn.Module):
     @torch.no_grad()
     def get_text_embeds(self, prompts, negative_prompts):
         prompt_embeds, negative_prompt_embeds = self.encode_prompt(prompts, negative_prompts)  # [2, 77, 768]
-        text_embeds = torch.cat([prompt_embeds, negative_prompt_embeds])
+        if self.mode == MODEL_TYPE_DEEPFLOYD:
+            text_embeds = torch.cat([negative_prompt_embeds, prompt_embeds]) 
+        elif self.mode == MODEL_TYPE_STABLE_DIFFUSION: 
+            text_embeds = torch.cat([prompt_embeds, negative_prompt_embeds])
         return text_embeds
     
     @torch.no_grad()
@@ -139,7 +142,7 @@ class MultiDiffusion(nn.Module):
 
                     # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
                     latent_model_input = torch.cat([latent_view] * 2)
-
+                    latent_model_input = self.scheduler.scale_model_input(latent_model_input, t) if MODEL_TYPE_DEEPFLOYD else latent_model_input
                     # predict the noise residual
                     noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeds)['sample']
                     
