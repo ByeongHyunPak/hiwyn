@@ -92,8 +92,8 @@ class ERPDiffusion_0_2_1(ERPDiffusion_0_1_1):
                 w_j_original = ddim_output['pred_original_sample']
 
                 theta, phi = self.views[j]
-                w_j_original = (w_j_original / 2 + 0.5).clamp(0, 1)
-                ToPILImage()(w_j_original[0].cpu()).save(f'/{save_dir}/{i+1:0>2}/w^0_{theta}_{phi}.png')
+                w_j_original_ = (w_j_original / 2 + 0.5).clamp(0, 1)
+                ToPILImage()(w_j_original_[0].cpu()).save(f'/{save_dir}/{i+1:0>2}/w^0_{theta}_{phi}.png')
 
                 # 6) inverse mapping w -> x
                 x_erp_up_j, mask_x_j = self.img_j_to_erp(w_j_original, j, erp_HW=x_erp_up.shape[-2:])
