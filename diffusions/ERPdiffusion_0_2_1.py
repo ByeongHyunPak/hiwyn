@@ -92,7 +92,6 @@ class ERPDiffusion_0_2_1(ERPDiffusion_0_1_1):
                 w_j_original = ddim_output['pred_original_sample']
 
                 theta, phi = self.views[j]
-                w_j_original = (w_j_original / 2 + 0.5).clamp(0, 1)    
                 ToPILImage()(w_j_original[0].cpu()).save(f'/{save_dir}/{i+1:0>2}/w^0_{theta}_{phi}.png')
 
                 # 6) inverse mapping w -> x
@@ -108,7 +107,6 @@ class ERPDiffusion_0_2_1(ERPDiffusion_0_1_1):
 
             # 7) Aggregate on canonical space
             x_erp_up = value / (count + 1e-8)
-            x_erp_up = (x_erp_up / 2 + 0.5).clamp(0, 1)    
             ToPILImage()(x_erp_up[0].cpu()).save(f"/{save_dir}/{i+1:0>2}/erp.png")
 
             # 8) forward mapping x -> w
