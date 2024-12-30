@@ -100,7 +100,7 @@ class MultiDiffusion(nn.Module):
     @torch.no_grad()
     def get_text_embeds(self, prompts, negative_prompts):
         prompt_embeds, negative_prompt_embeds = self.encode_prompt(prompts, negative_prompts)  # [2, 77, 768]
-        text_embeds = torch.cat([negative_prompt_embeds, prompt_embeds])
+        text_embeds = torch.cat([prompt_embeds, negative_prompt_embeds])
         return text_embeds
     
     @torch.no_grad()
