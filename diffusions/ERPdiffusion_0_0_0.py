@@ -15,13 +15,12 @@ class ERPDiffusion_0_0_0(MultiDiffusion):
     
     def __init__(self, 
                  device, 
-                 sd_version='2.0', 
                  hf_key=None, 
                  fov=90,
                  views=[(0, 0), (45, 0)],
                  half_precision=False
                  ):
-        super().__init__(device, sd_version, hf_key, half_precision)
+        super().__init__(device, hf_key, half_precision)
 
         self.up_level = 3
         
