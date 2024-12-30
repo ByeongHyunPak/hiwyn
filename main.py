@@ -66,7 +66,7 @@ if __name__ == '__main__':
             H, W = args.hw
             sd = model(device=torch.device('cuda'), hf_key=args.hf_key, fov=args.fov, views=directions, half_precision=args.half_precision) 
             if args.model == "MultiDiffusion":
-                outputs = sd.text2panorama(args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps)
+                outputs = sd.text2panorama(args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
             else:
                 outputs = sd.text2erp(
                     args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)

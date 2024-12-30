@@ -33,14 +33,15 @@ class MultiDiffusion(nn.Module):
             print("Unknown model (available model: stabilityai/stable-diffusion-2-1-base|stabilityai/stable-diffusion-2-base|runwayml/stable-diffusion-v1-5|DeepFloyd/IF-I-M-v1.0)")
 
         ddim = DDIMScheduler.from_pretrained(hf_key, subfolder="scheduler")
-        pipe = DiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32)).to("cuda")
 
         # print(pipe.components.keys()) # 'vae', 'text_encoder', 'tokenizer', 'unet', 'scheduler', 'safety_checker', 'feature_extractor', 'image_encoder
         if self.mode == MODEL_TYPE_STABLE_DIFFUSION:
+            pipe = DiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32)).to("cuda")
             self.vae, self.text_encoder, self.tokenizer, self.unet, self.scheduler, _, _, _ =  pipe.components.values()
             self.encode_prompt = lambda prompt, negative_prompt: self.stable_diffusion_encode_prompt(prompt, negative_prompt)
             self.resolution_factor = 8
         elif self.mode == MODEL_TYPE_STABLE_DIFFUSION:
+            pipe = DiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32)).to("cuda")
             self.tokenizer, self.text_encoder, self.unet, self.scheduler, _, _, _ =  pipe.components.values()
             self.encode_prompt = lambda prompt, negative_prompt: pipe.encode_prompt(prompt, do_classifier_free_guidance=True, num_images_per_prompt=1, device=self.device, negative_prompt=negative_prompt)
             self.resolution_factor = 1
@@ -104,7 +105,7 @@ class MultiDiffusion(nn.Module):
     
     @torch.no_grad()
     def text2panorama(self, prompts, negative_prompts='', height=512, width=2048, num_inference_steps=50,
-                      guidance_scale=7.5, visualize_intermidiates=False):
+                      guidance_scale=7.5, visualize_intermidiates=False, save_dir=None):
 
         if isinstance(prompts, str):
             prompts = [prompts]
@@ -171,7 +172,8 @@ class MultiDiffusion(nn.Module):
         # Img latents -> imgs
         imgs = self.latents2image(latent)  # [1, 3, 512, 512]
         img = T.ToPILImage()(imgs[0].cpu())
-
+        if save_dir is not None:
+            img.save(self.save_dir + "/result.png")
         if visualize_intermidiates is True:
             intermidiate_imgs.append((len(intermidiate_imgs), img))
             return intermidiate_imgs
