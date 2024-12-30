@@ -102,6 +102,7 @@ class ERPDiffusion_0_2_0(ERPDiffusion_0_1_1):
 
             # 7) Aggregate on canonical space
             x_erp_up = value / (count + 1e-8)
+            ToPILImage()(x_erp_up[0].cpu()).save(f"/{save_dir}/{i+1:0>2}/erp.png")
 
             # 8) forward mapping x -> w
             w_js = self.erp_to_img_j(x_erp_up)
