@@ -30,7 +30,7 @@ class MultiDiffusion(nn.Module):
         elif MODEL_TYPE_DEEPFLOYD in hf_key:
             self.mode = MODEL_TYPE_DEEPFLOYD
         else:
-            print("Unknown model (available model: stabilityai/stable-diffusion-2-1-base|stabilityai/stable-diffusion-2-base|runwayml/stable-diffusion-v1-5|DeepFloyd/IF-I-M-v1.0)")
+            ValueError("Unknown model (available model: stabilityai/stable-diffusion-2-1-base|stabilityai/stable-diffusion-2-base|runwayml/stable-diffusion-v1-5|DeepFloyd/IF-I-M-v1.0)")
 
         ddim = DDIMScheduler.from_pretrained(hf_key, subfolder="scheduler")
 
@@ -41,7 +41,8 @@ class MultiDiffusion(nn.Module):
             self.encode_prompt = lambda prompt, negative_prompt: self.stable_diffusion_encode_prompt(prompt, negative_prompt)
             self.resolution_factor = 8
         elif self.mode == MODEL_TYPE_DEEPFLOYD:
-            pipe = DiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32)).to("cuda")
+            pipe = DiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, variant="fp16", torch_dtype=(torch.float16 if half_precision else torch.float32))
+            pipe = pipe.to("cuda")
             self.tokenizer, self.text_encoder, self.unet, self.scheduler, _, _, _ =  pipe.components.values()
             self.encode_prompt = lambda prompt, negative_prompt: pipe.encode_prompt(prompt, do_classifier_free_guidance=True, num_images_per_prompt=1, device=self.device, negative_prompt=negative_prompt)
             self.resolution_factor = 1
@@ -86,12 +87,12 @@ class MultiDiffusion(nn.Module):
         # Decoding
         if self.mode == MODEL_TYPE_STABLE_DIFFUSION: 
             latents = 1 / 0.18215 * latents
-            imgs = self.vae.decode(latents).sample
+            latents = self.vae.decode(latents).sample
         # Post-processing
-        imgs = (imgs / 2 + 0.5).clamp(0, 1)    
-        if self.mode == MODEL_TYPE_DEEPFLOYD:
-            imgs = imgs.permute(0, 2, 3, 1).float()
-        return imgs
+        latents = (latents / 2 + 0.5).clamp(0, 1)    
+        # if self.mode == MODEL_TYPE_DEEPFLOYD:
+        #     latents = latents.permute(0, 2, 3, 1).float()
+        return latents
 
     @torch.no_grad()
     def decode_latents(self, latents):
@@ -127,6 +128,9 @@ class MultiDiffusion(nn.Module):
 
         self.scheduler.set_timesteps(num_inference_steps)
 
+        if hasattr(self.scheduler, "set_begin_index"):
+            self.scheduler.set_begin_index(0)
+
         with torch.autocast('cuda'):
 
             if visualize_intermidiates is True:
@@ -142,7 +146,7 @@ class MultiDiffusion(nn.Module):
 
                     # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
                     latent_model_input = torch.cat([latent_view] * 2)
-                    latent_model_input = self.scheduler.scale_model_input(latent_model_input, t) if MODEL_TYPE_DEEPFLOYD else latent_model_input
+                    latent_model_input = self.scheduler.scale_model_input(latent_model_input, t) if self.mode == MODEL_TYPE_DEEPFLOYD else latent_model_input
                     # predict the noise residual
                     noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeds)['sample']
                     

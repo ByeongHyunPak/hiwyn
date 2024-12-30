@@ -57,33 +57,33 @@ if __name__ == '__main__':
         for theta in thetas:
             directions.append((theta, phis[i]))
         print(*directions[-args.num_theta[i]:])   
-    
-    # get ERPDiffusion model
-    with torch.autocast(device_type='cuda', dtype=(torch.float16 if args.half_precision else torch.float32)):
-        model = globals()[f"{args.model}"]   
 
-        try:
-            H, W = args.hw
-            sd = model(device=torch.device('cuda'), hf_key=args.hf_key, fov=args.fov, views=directions, half_precision=args.half_precision) 
-            if args.model == "MultiDiffusion":
-                outputs = sd.text2panorama(args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
-            else:
-                outputs = sd.text2erp(
-                    args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
-                
-            del outputs
-            del sd
-            del model
-            torch.cuda.empty_cache()
-            gc.collect()
-            torch.cuda.empty_cache()
+# with torch.autocast(device_type='cuda', dtype=(torch.float16 if args.half_precision else torch.float32)):          
+    try:
+        H, W = args.hw
+        model = globals()[f"{args.model}"]
+        
+        if args.model == "MultiDiffusion":
+            sd = model(device=torch.device('cuda'), hf_key=args.hf_key, half_precision=args.half_precision, fov=args.fov, views=directions) 
+            outputs = sd.text2panorama(args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
+        else:
+            sd = model(device=torch.device('cuda'), hf_key=args.hf_key, half_precision=args.half_precision, fov=args.fov, views=directions) 
+            outputs = sd.text2erp(
+                args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
             
-        except Exception:
-            print(traceback.format_exc()) 
-            del sd
-            del model
-            torch.cuda.empty_cache()
-            gc.collect()
-            torch.cuda.empty_cache()
+        del outputs
+        del sd
+        del model
+        torch.cuda.empty_cache()
+        gc.collect()
+        torch.cuda.empty_cache()
+        
+    except Exception:
+        print(traceback.format_exc()) 
+        del sd
+        del model
+        torch.cuda.empty_cache()
+        gc.collect()
+        torch.cuda.empty_cache()
         
         
