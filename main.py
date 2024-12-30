@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     # defaults
     parser.add_argument('--img_dir', type=str, default="imgs")
-    parser.add_argument('--sd_version', type=str, default='2.0')
+    parser.add_argument('--hf_key', type=str, default='stabilityai/stable-diffusion-2-base')
     parser.add_argument('--steps', type=int, default=50)
     parser.add_argument('--negative', type=str, default='')
     parser.add_argument('--erp_hw', type=int, nargs=2, default=[1024, 2048])
@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
         try:
             H, W = args.erp_hw
-            sd = ERPDiffusion(device=torch.device('cuda'), sd_version=args.sd_version, fov=args.fov, views=directions, half_precision=args.half_precision) 
+            sd = ERPDiffusion(device=torch.device('cuda'), hf_key=args.hf_key, fov=args.fov, views=directions, half_precision=args.half_precision) 
             outputs = sd.text2erp(
                 args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
             

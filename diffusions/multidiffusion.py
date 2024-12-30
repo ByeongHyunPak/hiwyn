@@ -11,7 +11,6 @@ import argparse
 from tqdm import tqdm
 
 from diffusers import StableDiffusionPipeline
-# from DeepCache import DeepCacheSDHelper
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -19,9 +18,9 @@ def seed_everything(seed):
     # torch.backends.cudnn.deterministic = True
     # torch.backends.cudnn.benchmark = True
 
-def get_views(panorama_height, panorama_width, window_size=64, stride=8):
-    panorama_height /= 8
-    panorama_width /= 8
+def get_views(panorama_height, panorama_width, window_size=64, stride=8, resolution_factor=8):
+    panorama_height /= resolution_factor
+    panorama_width /= resolution_factor
     num_blocks_height = (panorama_height - window_size) // stride + 1
     num_blocks_width = (panorama_width - window_size) // stride + 1
     total_num_blocks = int(num_blocks_height * num_blocks_width)
@@ -35,48 +34,16 @@ def get_views(panorama_height, panorama_width, window_size=64, stride=8):
     return views
 
 class MultiDiffusion(nn.Module):
-    def __init__(self, device, sd_version='2.0', hf_key=None, half_precision=False):
+    def __init__(self, device, hf_key="stabilityai/stable-diffusion-2-base", half_precision=False): # stabilityai/stable-diffusion-2-1-base | stabilityai/stable-diffusion-2-base | runwayml/stable-diffusion-v1-5    
         super().__init__()
 
         self.device = device
-        self.sd_version = sd_version
 
-        print(f'[INFO] loading stable diffusion...')
-        if hf_key is not None:
-            print(f'[INFO] using hugging face custom model key: {hf_key}')
-            model_key = hf_key
-        elif self.sd_version == '2.1':
-            model_key = "stabilityai/stable-diffusion-2-1-base"
-        elif self.sd_version == '2.0':
-            model_key = "stabilityai/stable-diffusion-2-base"
-        elif self.sd_version == '1.5':
-            model_key = "runwayml/stable-diffusion-v1-5"
-        else:
-            raise ValueError(f'Stable-diffusion version {self.sd_version} not supported.')
-
-        # https://github.com/KAIST-Visual-AI-Group/SyncTweedies/blob/dc443ad4064601164a4a13d0809c473b70215eac/synctweedies/model/base_model.py#L100
-        ddim = DDIMScheduler.from_pretrained(model_key, subfolder="scheduler")
-        pipe = StableDiffusionPipeline.from_pretrained(model_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32)).to("cuda")
+        ddim = DDIMScheduler.from_pretrained(hf_key, subfolder="scheduler")
+        pipe = StableDiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32)).to("cuda")
 
         # print(pipe.components.keys()) # 'vae', 'text_encoder', 'tokenizer', 'unet', 'scheduler', 'safety_checker', 'feature_extractor', 'image_encoder
         self.vae, self.text_encoder, self.tokenizer, self.unet, self.scheduler, _, _, _ =  pipe.components.values()
-
-        # # DeepCache (not working in multidiffusion)
-        # # TODO: implement per-patch caching
-        # helper = DeepCacheSDHelper(pipe=pipe)
-        # helper.set_params(
-        #     cache_interval=3,
-        #     cache_branch_id=0,
-        # )
-        # helper.enable()
-
-        # # Create model (MultiDiffusion original code)
-        # self.vae = AutoencoderKL.from_pretrained(model_key, subfolder="vae").to(self.device)
-        # self.tokenizer = CLIPTokenizer.from_pretrained(model_key, subfolder="tokenizer")
-        # self.text_encoder = CLIPTextModel.from_pretrained(model_key, subfolder="text_encoder").to(self.device)
-        # self.unet = UNet2DConditionModel.from_pretrained(model_key, subfolder="unet").to(self.device)
-
-        # self.scheduler = DDIMScheduler.from_pretrained(model_key, subfolder="scheduler")
 
         print(f'[INFO] loaded stable diffusion!')
 
