@@ -36,7 +36,7 @@ class ERPDiffusion_0_2_1(ERPDiffusion_0_1_1):
     def text2erp(self,
                  prompts, 
                  negative_prompts='', 
-                 height=512, width=1024, 
+                 height=128, width=256,
                  num_inference_steps=50,
                  guidance_scale=7.5,
                  save_dir=None):
