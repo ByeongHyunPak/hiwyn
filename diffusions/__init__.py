@@ -9,3 +9,4 @@ from .ERPdiffusion_0_1_5 import ERPDiffusion_0_1_5
 from .ERPdiffusion_0_1_6 import ERPDiffusion_0_1_6
 
 from .ERPdiffusion_0_2_0 import ERPDiffusion_0_2_0
+from .ERPdiffusion_0_2_0 import ERPDiffusion_0_2_1
