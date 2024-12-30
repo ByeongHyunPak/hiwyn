@@ -15,11 +15,13 @@ class ERPDiffusion_0_2_0(ERPDiffusion_0_1_1):
     
     def __init__(self, 
                  device, 
-                 hf_key=None, 
+                 hf_key="DeepFloyd/IF-I-M-v1.0", 
                  fov=90,
                  views=[(0, 0), (45, 0)],
                  half_precision=False
                  ):
+        if hf_key != "DeepFloyd/IF-I-M-v1.0":
+            hf_key = "DeepFloyd/IF-I-M-v1.0"
         super().__init__(device, hf_key, half_precision)
 
         self.up_level = 3
@@ -106,26 +108,3 @@ class ERPDiffusion_0_2_0(ERPDiffusion_0_1_1):
             buffer_imgs = self.decode_and_save(i, w_js, save_dir, buffer_imgs)
         
         return buffer_imgs
-
-    def forward_mapping(self, x):
-        tgts = self.discrete_warping(x, normalize_fin_v_val=False)
-        return tgts
-
-    def inverse_mapping(self, w_j, j):
-        
-        B, C, h, w = w_j.shape
-        H, W  = self.indices[j].shape
-
-        sub_x_j = torch.zeros(B*C, H*W, device=self.device)
-        w_j_flat = w_j.reshape(B*C, -1) / self.fin_v_nums[j].view(1, -1)
-        w_j_flat_pad = torch.zeros(B*C, h*w + 1, device=self.device)
-        w_j_flat_pad[:, 1:] = w_j_flat
-
-        ind_x2w_j = self.indices[j]
-        mask_x_j = ind_x2w_j > 0
-        
-        sub_x_j[:, ...] = w_j_flat_pad[:, ind_x2w_j.flatten()]
-        sub_x_j = sub_x_j.reshape(B, C, H, W)
-        
-        return sub_x_j, mask_x_j
-        
