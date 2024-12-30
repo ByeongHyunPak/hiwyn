@@ -90,7 +90,7 @@ class ERPDiffusion_0_2_0(ERPDiffusion_0_1_1):
                 w_j_denoised = self.scheduler.step(noise_pred, t, w_j)['prev_sample']
 
                 # 6) inverse mapping w -> x
-                x_erp_up_j, mask_x_j = self.img_j_to_erp(w_j_denoised, j, erp_HW=(height, width))
+                x_erp_up_j, mask_x_j = self.img_j_to_erp(w_j_denoised, j, erp_HW=x_erp_up.shape[-2:])
 
                 value[:, :] += x_erp_up_j * mask_x_j
                 count[:, :] += mask_x_j
