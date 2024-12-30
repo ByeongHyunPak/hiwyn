@@ -91,10 +91,13 @@ class MultiDiffusion(nn.Module):
         if self.mode == MODEL_TYPE_DEEPFLOYD:
             imgs = imgs.permute(0, 2, 3, 1).float()
         return imgs
+<<<<<<< HEAD
 
     @torch.no_grad()
     def decode_latents(self, latents):
         return self.latents2image(latents)
+=======
+>>>>>>> d1e6ee6 (Integrate multidiffusion to main.py)
 
     @torch.no_grad()
     def text2panorama(self, prompts, negative_prompts='', height=512, width=2048, num_inference_steps=50,
