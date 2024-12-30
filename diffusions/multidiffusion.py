@@ -10,7 +10,7 @@ import torchvision.transforms as T
 import argparse
 from tqdm import tqdm
 
-from diffusers import StableDiffusionPipeline
+from diffusers import DiffusionPipeline
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -20,7 +20,7 @@ def seed_everything(seed):
 
 MODEL_TYPE_STABLE_DIFFUSION, MODEL_TYPE_DEEPFLOYD = "stable-diffusion", "DeepFloyd"
 class MultiDiffusion(nn.Module):
-    def __init__(self, device, hf_key="stabilityai/stable-diffusion-2-base", half_precision=False):
+    def __init__(self, device, hf_key="stabilityai/stable-diffusion-2-base", half_precision=False, **kwargs):
         super().__init__()
 
         self.device = device
@@ -33,7 +33,7 @@ class MultiDiffusion(nn.Module):
             print("Unknown model (available model: stabilityai/stable-diffusion-2-1-base|stabilityai/stable-diffusion-2-base|runwayml/stable-diffusion-v1-5|DeepFloyd/IF-I-M-v1.0)")
 
         ddim = DDIMScheduler.from_pretrained(hf_key, subfolder="scheduler")
-        pipe = StableDiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32)).to("cuda")
+        pipe = DiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32)).to("cuda")
 
         # print(pipe.components.keys()) # 'vae', 'text_encoder', 'tokenizer', 'unet', 'scheduler', 'safety_checker', 'feature_extractor', 'image_encoder
         if self.mode == MODEL_TYPE_STABLE_DIFFUSION:
@@ -89,9 +89,12 @@ class MultiDiffusion(nn.Module):
         # Post-processing
         imgs = (imgs / 2 + 0.5).clamp(0, 1)    
         if self.mode == MODEL_TYPE_DEEPFLOYD:
-            image = image.permute(0, 2, 3, 1).float()
-        
-        return image
+            imgs = imgs.permute(0, 2, 3, 1).float()
+        return imgs
+
+    @torch.no_grad()
+    def decode_latents(self, latents):
+        return self.latents2image(latents)
 
     @torch.no_grad()
     def text2panorama(self, prompts, negative_prompts='', height=512, width=2048, num_inference_steps=50,
