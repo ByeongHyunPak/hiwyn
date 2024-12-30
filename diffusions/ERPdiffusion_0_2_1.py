@@ -57,7 +57,7 @@ class ERPDiffusion_0_2_1(ERPDiffusion_0_1_1):
         x_erp_up = self.cond_noise_sampling(x_erp)
 
         # 3) Discrete warping x^T_ERP to {w^T_i}_i=1:N
-        w_js = self.discrete_warping(x_erp_up)
+        w_js = self.discrete_warping(x_erp_up, hw=(64, 64))
         buffer_imgs = self.decode_and_save(-1, w_js, save_dir, [])
 
         # set scheduler
@@ -95,7 +95,7 @@ class ERPDiffusion_0_2_1(ERPDiffusion_0_1_1):
                 ToPILImage()(w_j_original[0].cpu()).save(f'/{save_dir}/{i+1:0>2}/w^0_{theta}_{phi}.png')
 
                 # 6) inverse mapping w -> x
-                x_erp_up_j, mask_x_j = self.img_j_to_erp(w_j_original, j)
+                x_erp_up_j, mask_x_j = self.img_j_to_erp(w_j_denoised, j, erp_HW=(height, width))
 
                 value[:, :] += x_erp_up_j * mask_x_j
                 count[:, :] += mask_x_j
@@ -110,7 +110,7 @@ class ERPDiffusion_0_2_1(ERPDiffusion_0_1_1):
             ToPILImage()(x_erp_up[0].cpu()).save(f"/{save_dir}/{i+1:0>2}/erp.png")
 
             # 8) forward mapping x -> w
-            w0_js = self.erp_to_img_j(x_erp_up)
+            w0_js = self.erp_to_img_j(x_erp_up, img_j_hw=(64, 64))
 
             # 9) ddim scheduler step w/ w^t & w^0
             w_new_js = []
