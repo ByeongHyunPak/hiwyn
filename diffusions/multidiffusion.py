@@ -173,7 +173,7 @@ class MultiDiffusion(nn.Module):
         imgs = self.latents2image(latent)  # [1, 3, 512, 512]
         img = T.ToPILImage()(imgs[0].cpu())
         if save_dir is not None:
-            img.save(self.save_dir + "/result.png")
+            img.save(save_dir + "/result.png")
         if visualize_intermidiates is True:
             intermidiate_imgs.append((len(intermidiate_imgs), img))
             return intermidiate_imgs
