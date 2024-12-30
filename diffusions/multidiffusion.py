@@ -82,7 +82,7 @@ class MultiDiffusion(nn.Module):
         return views
 
     @torch.no_grad()
-    def latents2image(self, latents):
+    def latent2image(self, latents):
         # Decoding
         if self.mode == MODEL_TYPE_STABLE_DIFFUSION: 
             latents = 1 / 0.18215 * latents
@@ -95,7 +95,7 @@ class MultiDiffusion(nn.Module):
 
     @torch.no_grad()
     def decode_latents(self, latents):
-        return self.latents2image(latents)
+        return self.latent2image(latents)
 
     @torch.no_grad()
     def get_text_embeds(self, prompts, negative_prompts):
@@ -168,12 +168,12 @@ class MultiDiffusion(nn.Module):
 
                 # visualize intermidiate timesteps
                 if visualize_intermidiates is True:
-                    imgs = self.latents2image(latent)  # [1, 3, 512, 512]
+                    imgs = self.latent2image(latent)  # [1, 3, 512, 512]
                     img = T.ToPILImage()(imgs[0].cpu())
                     intermidiate_imgs.append((i, img))
 
         # Img latents -> imgs
-        imgs = self.latents2image(latent)  # [1, 3, 512, 512]
+        imgs = self.latent2image(latent)  # [1, 3, 512, 512]
         img = T.ToPILImage()(imgs[0].cpu())
         if save_dir is not None:
             img.save(save_dir + "/result.png")
