@@ -91,14 +91,17 @@ class MultiDiffusion(nn.Module):
         if self.mode == MODEL_TYPE_DEEPFLOYD:
             imgs = imgs.permute(0, 2, 3, 1).float()
         return imgs
-<<<<<<< HEAD
 
     @torch.no_grad()
     def decode_latents(self, latents):
         return self.latents2image(latents)
-=======
->>>>>>> d1e6ee6 (Integrate multidiffusion to main.py)
 
+    @torch.no_grad()
+    def get_text_embeds(self, prompts, negative_prompts):
+        prompt_embeds, negative_prompt_embeds = self.encode_prompt(prompts, negative_prompts)  # [2, 77, 768]
+        text_embeds = torch.cat([negative_prompt_embeds, prompt_embeds])
+        return text_embeds
+    
     @torch.no_grad()
     def text2panorama(self, prompts, negative_prompts='', height=512, width=2048, num_inference_steps=50,
                       guidance_scale=7.5, visualize_intermidiates=False):
@@ -110,8 +113,7 @@ class MultiDiffusion(nn.Module):
             negative_prompts = [negative_prompts]
 
         # Prompts -> text embeds
-        prompt_embeds, negative_prompt_embeds = self.encode_prompt(prompts, negative_prompts)  # [2, 77, 768]
-        text_embeds = torch.cat([negative_prompt_embeds, prompt_embeds])
+        text_embeds = self.get_text_embeds(prompts, negative_prompts)
 
         # Define panorama grid and get views
         latent = torch.randn((1, self.unet.in_channels, height // self.resolution_factor, width // self.resolution_factor), device=self.device)
