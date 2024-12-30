@@ -18,37 +18,37 @@ def seed_everything(seed):
     # torch.backends.cudnn.deterministic = True
     # torch.backends.cudnn.benchmark = True
 
-def get_views(panorama_height, panorama_width, window_size=64, stride=8, resolution_factor=8):
-    panorama_height /= resolution_factor
-    panorama_width /= resolution_factor
-    num_blocks_height = (panorama_height - window_size) // stride + 1
-    num_blocks_width = (panorama_width - window_size) // stride + 1
-    total_num_blocks = int(num_blocks_height * num_blocks_width)
-    views = []
-    for i in range(total_num_blocks):
-        h_start = int((i // num_blocks_width) * stride)
-        h_end = h_start + window_size
-        w_start = int((i % num_blocks_width) * stride)
-        w_end = w_start + window_size
-        views.append((h_start, h_end, w_start, w_end))
-    return views
-
+MODEL_TYPE_STABLE_DIFFUSION, MODEL_TYPE_DEEPFLOYD = "stable-diffusion", "DeepFloyd"
 class MultiDiffusion(nn.Module):
-    def __init__(self, device, hf_key="stabilityai/stable-diffusion-2-base", half_precision=False): # stabilityai/stable-diffusion-2-1-base | stabilityai/stable-diffusion-2-base | runwayml/stable-diffusion-v1-5    
+    def __init__(self, device, hf_key="stabilityai/stable-diffusion-2-base", half_precision=False):
         super().__init__()
 
         self.device = device
+
+        if MODEL_TYPE_STABLE_DIFFUSION in hf_key:
+            self.mode = MODEL_TYPE_STABLE_DIFFUSION
+        elif MODEL_TYPE_DEEPFLOYD in hf_key:
+            self.mode = MODEL_TYPE_DEEPFLOYD
+        else:
+            print("Unknown model (available model: stabilityai/stable-diffusion-2-1-base|stabilityai/stable-diffusion-2-base|runwayml/stable-diffusion-v1-5|DeepFloyd/IF-I-M-v1.0)")
 
         ddim = DDIMScheduler.from_pretrained(hf_key, subfolder="scheduler")
         pipe = StableDiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32)).to("cuda")
 
         # print(pipe.components.keys()) # 'vae', 'text_encoder', 'tokenizer', 'unet', 'scheduler', 'safety_checker', 'feature_extractor', 'image_encoder
-        self.vae, self.text_encoder, self.tokenizer, self.unet, self.scheduler, _, _, _ =  pipe.components.values()
+        if self.mode == MODEL_TYPE_STABLE_DIFFUSION:
+            self.vae, self.text_encoder, self.tokenizer, self.unet, self.scheduler, _, _, _ =  pipe.components.values()
+            self.encode_prompt = lambda prompt, negative_prompt: self.stable_diffusion_encode_prompt(prompt, negative_prompt)
+            self.resolution_factor = 8
+        elif self.mode == MODEL_TYPE_STABLE_DIFFUSION:
+            self.tokenizer, self.text_encoder, self.unet, self.scheduler, _, _, _ =  pipe.components.values()
+            self.encode_prompt = lambda prompt, negative_prompt: pipe.encode_prompt(prompt, do_classifier_free_guidance=True, num_images_per_prompt=1, device=self.device, negative_prompt=negative_prompt)
+            self.resolution_factor = 1
 
-        print(f'[INFO] loaded stable diffusion!')
-
+        print(f'[INFO] loaded diffusion pipes!')
+    
     @torch.no_grad()
-    def get_text_embeds(self, prompt, negative_prompt):
+    def stable_diffusion_encode_prompt(self, prompt, negative_prompt):
         # prompt, negative_prompt: [str]
 
         # Tokenize text and get embeddings
@@ -61,17 +61,37 @@ class MultiDiffusion(nn.Module):
                                       return_tensors='pt')
 
         uncond_embeddings = self.text_encoder(uncond_input.input_ids.to(self.device))[0]
-
-        # Cat for final embeddings
-        text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
-        return text_embeddings
+        
+        return uncond_embeddings, text_embeddings
+    
+    @torch.no_grad()
+    def get_views(self, panorama_height, panorama_width, window_size=64, stride=8):
+        panorama_height /= self.resolution_factor
+        panorama_width /= self.resolution_factor
+        num_blocks_height = (panorama_height - window_size) // stride + 1
+        num_blocks_width = (panorama_width - window_size) // stride + 1
+        total_num_blocks = int(num_blocks_height * num_blocks_width)
+        views = []
+        for i in range(total_num_blocks):
+            h_start = int((i // num_blocks_width) * stride)
+            h_end = h_start + window_size
+            w_start = int((i % num_blocks_width) * stride)
+            w_end = w_start + window_size
+            views.append((h_start, h_end, w_start, w_end))
+        return views
 
     @torch.no_grad()
-    def decode_latents(self, latents):
-        latents = 1 / 0.18215 * latents
-        imgs = self.vae.decode(latents).sample
-        imgs = (imgs / 2 + 0.5).clamp(0, 1)
-        return imgs
+    def latents2image(self, latents):
+        # Decoding
+        if self.mode == MODEL_TYPE_STABLE_DIFFUSION: 
+            latents = 1 / 0.18215 * latents
+            imgs = self.vae.decode(latents).sample
+        # Post-processing
+        imgs = (imgs / 2 + 0.5).clamp(0, 1)    
+        if self.mode == MODEL_TYPE_DEEPFLOYD:
+            image = image.permute(0, 2, 3, 1).float()
+        
+        return image
 
     @torch.no_grad()
     def text2panorama(self, prompts, negative_prompts='', height=512, width=2048, num_inference_steps=50,
@@ -84,11 +104,12 @@ class MultiDiffusion(nn.Module):
             negative_prompts = [negative_prompts]
 
         # Prompts -> text embeds
-        text_embeds = self.get_text_embeds(prompts, negative_prompts)  # [2, 77, 768]
+        prompt_embeds, negative_prompt_embeds = self.encode_prompt(prompts, negative_prompts)  # [2, 77, 768]
+        text_embeds = torch.cat([negative_prompt_embeds, prompt_embeds])
 
         # Define panorama grid and get views
-        latent = torch.randn((1, self.unet.in_channels, height // 8, width // 8), device=self.device)
-        views = get_views(height, width)
+        latent = torch.randn((1, self.unet.in_channels, height // self.resolution_factor, width // self.resolution_factor), device=self.device)
+        views = self.get_views(height, width)
         count = torch.zeros_like(latent)
         value = torch.zeros_like(latent)
 
@@ -112,10 +133,18 @@ class MultiDiffusion(nn.Module):
 
                     # predict the noise residual
                     noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeds)['sample']
-
+                    
                     # perform guidance
-                    noise_pred_uncond, noise_pred_cond = noise_pred.chunk(2)
-                    noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_cond - noise_pred_uncond)
+                    if self.mode == MODEL_TYPE_STABLE_DIFFUSION:
+                        noise_pred_uncond, noise_pred_cond = noise_pred.chunk(2)
+                        noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_cond - noise_pred_uncond)
+                    elif self.mode == MODEL_TYPE_DEEPFLOYD:
+                        noise_pred_uncond, noise_pred_cond = noise_pred.chunk(2)
+                        noise_pred_uncond, _ = noise_pred_uncond.split(latent_model_input.shape[1], dim=1)
+                        noise_pred_cond, predicted_variance = noise_pred_cond.split(latent_model_input.shape[1], dim=1)
+                        noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_cond - noise_pred_uncond)
+                        noise_pred = torch.cat([noise_pred, predicted_variance], dim=1)
+                        noise_pred, _ = noise_pred.split(latent_model_input.shape[1], dim=1)
 
                     # compute the denoising step with the reference model
                     latents_view_denoised = self.scheduler.step(noise_pred, t, latent_view)['prev_sample']
@@ -127,12 +156,12 @@ class MultiDiffusion(nn.Module):
 
                 # visualize intermidiate timesteps
                 if visualize_intermidiates is True:
-                    imgs = self.decode_latents(latent)  # [1, 3, 512, 512]
+                    imgs = self.latents2image(latent)  # [1, 3, 512, 512]
                     img = T.ToPILImage()(imgs[0].cpu())
                     intermidiate_imgs.append((i, img))
 
         # Img latents -> imgs
-        imgs = self.decode_latents(latent)  # [1, 3, 512, 512]
+        imgs = self.latents2image(latent)  # [1, 3, 512, 512]
         img = T.ToPILImage()(imgs[0].cpu())
 
         if visualize_intermidiates is True:
