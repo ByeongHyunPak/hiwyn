@@ -1,6 +1,5 @@
 from .multidiffusion import MultiDiffusion, seed_everything
 from .multidiffusion_2 import MultiDiffusion_2
-from .multidiffusion_2 import MultiDiffusion_3
 
 from .ERPdiffusion_0_0_0 import ERPDiffusion_0_0_0
 from .ERPdiffusion_0_1_0 import ERPDiffusion_0_1_0
