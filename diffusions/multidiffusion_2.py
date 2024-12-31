@@ -138,18 +138,16 @@ class MultiDiffusion_2(nn.Module):
 
         with torch.autocast('cuda'):
 
-            if visualize_intermidiates is True:
-                intermidiate_imgs = []
-
             latents = []
             for h_start, h_end, w_start, w_end in views:
                 latent_view = latent[:, :, h_start:h_end, w_start:w_end]
                 latents.append(latent_view)
-                
+
             for i, t in enumerate(tqdm(self.scheduler.timesteps)):
                 count.zero_()
                 value.zero_()
 
+                cnt = 0
                 for latent_view in latents:
                     
                     # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
@@ -159,22 +157,22 @@ class MultiDiffusion_2(nn.Module):
                     noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeds)['sample']
                     
                     # perform guidance
-                    if self.mode == MODEL_TYPE_STABLE_DIFFUSION:
-                        noise_pred_uncond, noise_pred_cond = noise_pred.chunk(2)
-                        noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_cond - noise_pred_uncond)
-                    elif self.mode == MODEL_TYPE_DEEPFLOYD:
-                        noise_pred_uncond, noise_pred_cond = noise_pred.chunk(2)
-                        noise_pred_uncond, _ = noise_pred_uncond.split(latent_model_input.shape[1], dim=1)
-                        noise_pred_cond, predicted_variance = noise_pred_cond.split(latent_model_input.shape[1], dim=1)
-                        noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_cond - noise_pred_uncond)
-                        noise_pred = torch.cat([noise_pred, predicted_variance], dim=1)
-                        noise_pred, _ = noise_pred.split(latent_model_input.shape[1], dim=1)
+                    noise_pred_uncond, noise_pred_cond = noise_pred.chunk(2)
+                    noise_pred_uncond, _ = noise_pred_uncond.split(latent_model_input.shape[1], dim=1)
+                    noise_pred_cond, predicted_variance = noise_pred_cond.split(latent_model_input.shape[1], dim=1)
+                    noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_cond - noise_pred_uncond)
+                    noise_pred = torch.cat([noise_pred, predicted_variance], dim=1)
+                    noise_pred, _ = noise_pred.split(latent_model_input.shape[1], dim=1)
 
                     # compute the denoising step with the reference model
                     ### syncTweedies
                     ddim_output = self.scheduler.step(noise_pred, t, latent_view)
                     x_j_denoised = ddim_output['prev_sample']
                     x_j_original = ddim_output['pred_original_sample']
+
+                    x_j_original_ = self.latent2image(x_j_original)
+                    T.ToPILImage()(x_j_original_[0].cpu()).save(f"{save_dir}/{i:0>2}_{cnt}_x_original.png")
+                    cnt += 1
 
                     value[:, :, h_start:h_end, w_start:w_end] += x_j_original
                     count[:, :, h_start:h_end, w_start:w_end] += 1                   
@@ -183,8 +181,10 @@ class MultiDiffusion_2(nn.Module):
                 x_originals = []
                 for h_start, h_end, w_start, w_end in views:
                     x_originals.append(x_original[:, :, h_start:h_end, w_start:w_end])
-                
-                latents = []
+
+                latents_new = []
+
+                cnt = 0
                 for latent_view, x_orig in zip(latents, x_originals):
                     timestep = t
                     prev_timestep = timestep - self.scheduler.config.num_train_timesteps // self.scheduler.num_inference_steps
@@ -201,21 +201,26 @@ class MultiDiffusion_2(nn.Module):
                     x0_coeff = torch.sqrt(alpha_prod_t_prev) - torch.sqrt(alpha_prod_t) / torch.sqrt(1 - alpha_prod_t) * torch.sqrt(1 - alpha_prod_t_prev - std_dev_t**2)
                     
                     w_new_j = xt_coeff * latent_view + x0_coeff * x_orig
-                    latents.append(w_new_j)
+                    w_new_j_ = self.latent2image(w_new_j)
+                    T.ToPILImage()(w_new_j_[0].cpu()).save(f"{save_dir}/{i:0>2}_{cnt}_w_new_j.png")
+                    cnt += 1
 
-                # visualize intermidiate timesteps
-                if visualize_intermidiates is True:
-                    imgs = self.latent2image(latent)  # [1, 3, 512, 512]
-                    img = T.ToPILImage()(imgs[0].cpu())
-                    intermidiate_imgs.append((i, img))
+                    latents_new.append(w_new_j)
+                
+                latents = latents_new
+
+        count = torch.zeros_like(latent)
+        value = torch.zeros_like(latent)
+        
+        for j, view in enumerate(views):
+            h_start, h_end, w_start, w_end = view
+            value[:, :, h_start:h_end, w_start:w_end] += latents[j]
+            count[:, :, h_start:h_end, w_start:w_end] += 1   
+        latent = torch.where(count > 0, value / count, value)
 
         # Img latents -> imgs
         imgs = self.latent2image(latent)  # [1, 3, 512, 512]
         img = T.ToPILImage()(imgs[0].cpu())
         if save_dir is not None:
             img.save(save_dir + "/result.png")
-        if visualize_intermidiates is True:
-            intermidiate_imgs.append((len(intermidiate_imgs), img))
-            return intermidiate_imgs
-        else:
             return [img]
