@@ -1,5 +1,6 @@
 from .multidiffusion import MultiDiffusion, seed_everything
 from .multidiffusion_2 import MultiDiffusion_2
+from .multidiffusion_3 import MultiDiffusion_3
 
 from .spotdiffusion import SpotDiffusion
 
