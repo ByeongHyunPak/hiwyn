@@ -178,7 +178,7 @@ class SpotDiffusion(nn.Module):
                     count[:, :, h_start:h_end, w_start:w_end] += 1
 
                 # take the SpotDiffusion step
-                # latent = torch.where(count > 0, value / count, value)
+                latent = torch.where(count > 0, value / count, value)
                 latent = torch.cat((latent[:,:,:,-shift:], latent[:,:,:,:-shift]), dim=-1)
 
                 if circular_padding:
