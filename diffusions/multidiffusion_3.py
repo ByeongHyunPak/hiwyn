@@ -19,7 +19,7 @@ def seed_everything(seed):
     # torch.backends.cudnn.benchmark = True
 
 MODEL_TYPE_STABLE_DIFFUSION, MODEL_TYPE_DEEPFLOYD = "stable-diffusion", "DeepFloyd"
-class MultiDiffusion(nn.Module):
+class MultiDiffusion_3(nn.Module):
     """ Noise fusion, not latent (https://arxiv.org/pdf/2311.17919)
     """
     def __init__(self, device, hf_key="stabilityai/stable-diffusion-2-base", half_precision=False, **kwargs):
