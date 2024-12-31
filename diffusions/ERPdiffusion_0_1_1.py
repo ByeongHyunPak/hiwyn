@@ -36,29 +36,14 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
         return latents
     
     @torch.no_grad()
-    def img_j_to_erp(self, img_j, j, erp_HW=(1024, 2048)):
+    def img_j_to_erp(self, img_j, erp2pers_pair, erp_HW=(1024, 2048)):
         H, W = erp_HW
-        
-        theta, phi = self.views[j]
 
-        # TODO(jw): move to global context (and CPU)
-        erp_grid = make_coord(erp_HW, flatten=False).to(self.device) # (H, W, 2); ERP coordinates
-
-        # TODO(jw): move to global context
-        erp2pers_grid, valid_mask = gridy2x_erp2pers(gridy=erp_grid,
-            HWy=erp_HW, HWx=img_j.shape[-2:], THETA=theta, PHI=phi, FOVy=360, FOVx=90) # (H*W, 2), (H*W)
-
-        # Filter valid indices
-        erp_indices = torch.arange(0, H*W).to(self.device) # (H*W,)
-        valid_erp_indices = erp_indices[valid_mask.bool()].long() # sample (D,) from (H*W,)
-
-        erp2pers_grid = erp2pers_grid[valid_mask.bool()] # sample (D, 2) from (H*W, 2)
-        erp2pers_grid_input = erp2pers_grid.unsqueeze(1).unsqueeze(0) # (D, 2) -> (1, D, 1, 2)
-        erp2pers_grid_input = erp2pers_grid_input.flip(-1) # x <-> y
+        erp2pers_grid, erp_indices = erp2pers_pair # (_, D, _, 2), (D,)
 
         img_j_to_erp_img = F.grid_sample(
             img_j, # (1, C, h, w)
-            erp2pers_grid_input, # (_, D, _, 2)
+            erp2pers_grid, # (_, D, _, 2)
             mode="bicubic", align_corners=False,
             padding_mode="reflection"
         ) # (_, C, D, 1)
@@ -67,7 +52,7 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
 
         img_j_to_erp_img = img_j_to_erp_img.view(img_j.shape[1], -1) # (_, C, D, 1) -> (C, D)
 
-        return img_j_to_erp_img, valid_erp_indices # (C, D), (D,); value, indices
+        return img_j_to_erp_img, erp_indices # (C, D), (D,); value, indices
     
     @torch.no_grad()
     def erp_to_img_j(self, erp_img, img_j_hw=(512, 512)):
@@ -93,7 +78,34 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
             
             img_js.append(img_j)
         return img_js
-    
+
+    '''
+    Prepare each view's Perspective coordinates w.r.t. ERP indices (erp2pers_grid) and corresponding ERP indices (erp_indices)
+    '''
+    @torch.no_grad()
+    def make_erp2pers_pairs(self, erpHW, imgHW=(512, 512)):
+        '''
+        erp2pers_pairs: list of (erp2pers_grid, erp_indices)
+        '''
+        # TODO(jw): 512, 512 -> variable
+        # 
+        erp2pers_pairs = [] 
+        erp_grid = make_coord(erpHW, flatten=False).to(self.device) # (H, W, 2); ERP coordinates
+        for theta, phi in self.views:        
+            erp2pers_grid, valid_mask = gridy2x_erp2pers(gridy=erp_grid,
+                HWy=erpHW, HWx=imgHW, THETA=theta, PHI=phi, FOVy=360, FOVx=90) # (H*W, 2), (H*W)
+        
+            # Filter valid indices
+            erp_indices = torch.arange(0, erpHW[0]*erpHW[1]).to(self.device) # (H*W,)
+            erp_indices = erp_indices[valid_mask.bool()].long() # sample (D,) from (H*W,)
+
+            erp2pers_grid = erp2pers_grid[valid_mask.bool()] # sample (D, 2) from (H*W, 2)
+            erp2pers_grid = erp2pers_grid.unsqueeze(1).unsqueeze(0) # (D, 2) -> (1, D, 1, 2)
+            erp2pers_grid = erp2pers_grid.flip(-1) # x <-> y
+
+            erp2pers_pairs.append((erp2pers_grid, erp_indices))
+        return erp2pers_pairs
+
     @torch.no_grad()
     def text2erp(self,
                  prompts, 
@@ -131,6 +143,8 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
 
         self.scheduler.set_timesteps(num_inference_steps)
 
+        erp2pers_pairs = self.make_erp2pers_pairs(erpHW=(H, W))        
+
         for i, t in enumerate(tqdm(self.scheduler.timesteps)):
             if os.path.exists(f"{save_dir}/{i+1:0>2}") is False:
                     os.mkdir(f"{save_dir}/{i+1:0>2}/")
@@ -161,7 +175,7 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
 
                 # 6) inverse mapping w'^0 -> x
                 # x_erp_up_j, mask_x_j = self.inverse_mapping(img_j, j)
-                x_erp_up_j, indices = self.img_j_to_erp(img_j, j)
+                x_erp_up_j, indices = self.img_j_to_erp(img_j, erp2pers_pairs[j])
 
                 value_ = value.view(3, H*W)
                 count_ = count.view(3, H*W)
