@@ -63,7 +63,7 @@ with torch.autocast(device_type='cuda', dtype=(torch.float16 if args.half_precis
         H, W = args.hw
         model = globals()[f"{args.model}"]
         
-        if "MultiDiffusion" in args.model:
+        if "MultiDiffusion" in args.model or "SpotDiffusion" in args.model:
             sd = model(device=torch.device('cuda'), hf_key=args.hf_key, half_precision=args.half_precision, fov=args.fov, views=directions) 
             outputs = sd.text2panorama(args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
         else:
