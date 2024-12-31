@@ -110,7 +110,7 @@ class MultiDiffusion(nn.Module):
     
     @torch.no_grad()
     def text2panorama(self, prompts, negative_prompts='', height=512, width=2048, num_inference_steps=50,
-                      guidance_scale=7.5, visualize_intermidiates=False, save_dir=None):
+                      guidance_scale=7.5, visualize_intermidiates=False, save_dir=None, circular_padding=True):
 
         if isinstance(prompts, str):
             prompts = [prompts]
@@ -123,7 +123,13 @@ class MultiDiffusion(nn.Module):
 
         # Define panorama grid and get views
         latent = torch.randn((1, self.unet.in_channels, height // self.resolution_factor, width // self.resolution_factor), device=self.device)
-        views = self.get_views(height, width)
+
+        if circular_padding:
+            w = width // self.resolution_factor
+            latent = torch.cat((latent[:,:,:,-w//4:], latent, latent[:,:,:,:w//4]), dim=-1) # - circular padding
+            views = self.get_views(height, width + width//2)
+        else:
+            views = self.get_views(height, width)
         count = torch.zeros_like(latent)
         value = torch.zeros_like(latent)
 
@@ -171,11 +177,20 @@ class MultiDiffusion(nn.Module):
                 # take the MultiDiffusion step
                 latent = torch.where(count > 0, value / count, value)
 
+                if circular_padding:
+                    latent = latent[:,:,:,w//4:-w//4]
+
                 # visualize intermidiate timesteps
                 if visualize_intermidiates is True:
                     imgs = self.latent2image(latent)  # [1, 3, 512, 512]
                     img = T.ToPILImage()(imgs[0].cpu())
                     intermidiate_imgs.append((i, img))
+                
+                if circular_padding:
+                    latent = torch.cat((latent[:,:,:,-w//4:], latent, latent[:,:,:,:w//4]), dim=-1) # - circular padding
+
+        if circular_padding:
+            latent = latent[:,:,:,w//4:-w//4]
 
         # Img latents -> imgs
         imgs = self.latent2image(latent)  # [1, 3, 512, 512]
