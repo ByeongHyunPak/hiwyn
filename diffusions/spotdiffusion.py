@@ -68,17 +68,17 @@ class SpotDiffusion(nn.Module):
         return uncond_embeddings, text_embeddings
     
     @torch.no_grad()
-    def get_views(self, panorama_height, panorama_width, window_size=64, stride=64):
+    def get_views(self, panorama_height, panorama_width, window_size=64, stride_w=64, stride_h=8):
         panorama_height /= self.resolution_factor
         panorama_width /= self.resolution_factor
-        num_blocks_height = (panorama_height - window_size) // stride + 1
-        num_blocks_width = (panorama_width - window_size) // stride + 1
+        num_blocks_height = (panorama_height - window_size) // stride_h + 1
+        num_blocks_width = (panorama_width - window_size) // stride_w + 1
         total_num_blocks = int(num_blocks_height * num_blocks_width)
         views = []
         for i in range(total_num_blocks):
-            h_start = int((i // num_blocks_width) * stride)
+            h_start = int((i // num_blocks_width) * stride_h)
             h_end = h_start + window_size
-            w_start = int((i % num_blocks_width) * stride)
+            w_start = int((i % num_blocks_width) * stride_w)
             w_end = w_start + window_size
             views.append((h_start, h_end, w_start, w_end))
         return views
