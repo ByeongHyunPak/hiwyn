@@ -55,43 +55,39 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
         return img_j_to_erp_img, erp_indices # (C, D), (D,); value, indices
     
     @torch.no_grad()
-    def erp_to_img_j(self, erp_img, img_j_hw=(512, 512)):
+    def erp_to_img_j(self, erp_img, pers2erp_grids):
         B, C, H, W = erp_img.shape
-        h, w = img_j_hw
 
-        pers_grid = make_coord(img_j_hw, flatten=False).to(self.device)
-        img_js = []
-        for theta, phi in self.views:
-            pers2erp_grid, valid_mask = gridy2x_pers2erp(gridy=pers_grid,
-                HWy=img_j_hw, HWx=(H, W), THETA=theta, PHI=phi, FOVy=self.fov, FOVx=360)
-            
-            pers2erp_grid = pers2erp_grid.view(h, w, 2)
-            valid_mask = valid_mask.view(1, 1, h, w)
+        pers2erp_grids_input = torch.stack(pers2erp_grids).squeeze(1) 
 
-            img_j = F.grid_sample(
-                erp_img,
-                pers2erp_grid.unsqueeze(0).flip(-1),
-                mode="bicubic", align_corners=False)
-            img_j *= valid_mask
-
-            img_j.clamp_(0, 1)
-            
-            img_js.append(img_j)
-        return img_js
+        img_js = F.grid_sample(
+            erp_img.expand(len(self.views), -1, -1 ,-1),
+            pers2erp_grids_input,
+            mode="bicubic", align_corners=False)
+        
+        img_js.clamp_(0, 1)
+        
+        img_js = img_js.unsqueeze(1)
+        
+        return list(torch.unbind(img_js, dim=0))
 
     '''
     Prepare each view's Perspective coordinates w.r.t. ERP indices (erp2pers_grid) and corresponding ERP indices (erp_indices)
     '''
     @torch.no_grad()
-    def make_erp2pers_pairs(self, erpHW, imgHW=(512, 512)):
+    def prepare_erp_pers_matching(self, erpHW, imgHW=(512, 512)):
         '''
         erp2pers_pairs: list of (erp2pers_grid, erp_indices)
         '''
-        # TODO(jw): 512, 512 -> variable
-        # 
+
         erp2pers_pairs = [] 
+        pers2erp_grids = []
+        
         erp_grid = make_coord(erpHW, flatten=False).to(self.device) # (H, W, 2); ERP coordinates
-        for theta, phi in self.views:        
+        pers_grid = make_coord(imgHW, flatten=False).to(self.device) # (h, w, 2)
+
+        for theta, phi in self.views:  
+            ### ERP2PERS ###      
             erp2pers_grid, valid_mask = gridy2x_erp2pers(gridy=erp_grid,
                 HWy=erpHW, HWx=imgHW, THETA=theta, PHI=phi, FOVy=360, FOVx=90) # (H*W, 2), (H*W)
         
@@ -104,7 +100,14 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
             erp2pers_grid = erp2pers_grid.flip(-1) # x <-> y
 
             erp2pers_pairs.append((erp2pers_grid, erp_indices))
-        return erp2pers_pairs
+
+            ### PERS2ERP ###
+            pers2erp_grid, valid_mask = gridy2x_pers2erp(gridy=pers_grid,
+                HWy=imgHW, HWx=erpHW, THETA=theta, PHI=phi, FOVy=self.fov, FOVx=360)
+            pers2erp_grid = pers2erp_grid.view(*imgHW, 2).unsqueeze(0).flip(-1)
+            pers2erp_grids.append(pers2erp_grid)
+
+        return erp2pers_pairs, pers2erp_grids
 
     @torch.no_grad()
     def text2erp(self,
@@ -143,7 +146,7 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
 
         self.scheduler.set_timesteps(num_inference_steps)
 
-        erp2pers_pairs = self.make_erp2pers_pairs(erpHW=(H, W))        
+        erp2pers_pairs, pers2erp_grids = self.prepare_erp_pers_matching(erpHW=(H, W))        
 
         for i, t in enumerate(tqdm(self.scheduler.timesteps)):
             if os.path.exists(f"{save_dir}/{i+1:0>2}") is False:
@@ -204,7 +207,7 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
             # 8) forward mapping x -> w^0
             ### 0.1.1 - re-encode the fused images
             # img_js = self.forward_mapping(x_erp_up)
-            img_js = self.erp_to_img_j(x_erp_up)
+            img_js = self.erp_to_img_j(x_erp_up, pers2erp_grids)
             w0_js = []
             for img_j in img_js:
                 # img_j = F.interpolate(img_j, scale_factor=8, mode='bicubic', align_corners=False)
