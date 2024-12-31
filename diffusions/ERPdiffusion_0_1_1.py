@@ -38,27 +38,36 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
     @torch.no_grad()
     def img_j_to_erp(self, img_j, j, erp_HW=(1024, 2048)):
         H, W = erp_HW
-
+        
         theta, phi = self.views[j]
 
-        erp_grid = make_coord(erp_HW, flatten=False).to(self.device)
+        # TODO(jw): move to global context (and CPU)
+        erp_grid = make_coord(erp_HW, flatten=False).to(self.device) # (H, W, 2); ERP coordinates
 
+        # TODO(jw): move to global context
         erp2pers_grid, valid_mask = gridy2x_erp2pers(gridy=erp_grid,
-            HWy=erp_HW, HWx=img_j.shape[-2:], THETA=theta, PHI=phi, FOVy=360, FOVx=self.fov)
-        
-        erp2pers_grid = erp2pers_grid.view(H, W, 2)
-        valid_mask = valid_mask.view(1, 1, H, W)
+            HWy=erp_HW, HWx=img_j.shape[-2:], THETA=theta, PHI=phi, FOVy=360, FOVx=90) # (H*W, 2), (H*W)
+
+        # Filter valid indices
+        erp_indices = torch.arange(0, H*W).to(self.device) # (H*W,)
+        valid_erp_indices = erp_indices[valid_mask.bool()].long() # sample (D,) from (H*W,)
+
+        erp2pers_grid = erp2pers_grid[valid_mask.bool()] # sample (D, 2) from (H*W, 2)
+        erp2pers_grid_input = erp2pers_grid.unsqueeze(1).unsqueeze(0) # (D, 2) -> (1, D, 1, 2)
+        erp2pers_grid_input = erp2pers_grid_input.flip(-1) # x <-> y
 
         img_j_to_erp_img = F.grid_sample(
-            img_j,
-            erp2pers_grid.unsqueeze(0).flip(-1),
+            img_j, # (1, C, h, w)
+            erp2pers_grid_input, # (_, D, _, 2)
             mode="bicubic", align_corners=False,
-            padding_mode="reflection")
-        img_j_to_erp_img *= valid_mask
+            padding_mode="reflection"
+        ) # (_, C, D, 1)
 
         img_j_to_erp_img.clamp_(0, 1)
 
-        return img_j_to_erp_img, valid_mask
+        img_j_to_erp_img = img_j_to_erp_img.view(img_j.shape[1], -1) # (_, C, D, 1) -> (C, D)
+
+        return img_j_to_erp_img, valid_erp_indices # (C, D), (D,); value, indices
     
     @torch.no_grad()
     def erp_to_img_j(self, erp_img, img_j_hw=(512, 512)):
@@ -116,8 +125,10 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
         # set scheduler
         # value = torch.zeros_like(x_erp_up)
         # count = torch.zeros_like(x_erp_up)
-        value = torch.zeros((1, 3, *x_erp_up.shape[-2:]), device=self.device)
-        count = torch.zeros((1, 3, *x_erp_up.shape[-2:]), device=self.device)
+        H, W = x_erp_up.shape[-2:]
+        value = torch.zeros((1, 3, H, W), device=self.device)
+        count = torch.zeros((1, 3, H, W), device=self.device)
+
         self.scheduler.set_timesteps(num_inference_steps)
 
         for i, t in enumerate(tqdm(self.scheduler.timesteps)):
@@ -150,10 +161,12 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
 
                 # 6) inverse mapping w'^0 -> x
                 # x_erp_up_j, mask_x_j = self.inverse_mapping(img_j, j)
-                x_erp_up_j, mask_x_j = self.img_j_to_erp(img_j, j)
+                x_erp_up_j, indices = self.img_j_to_erp(img_j, j)
 
-                value[:, :] += x_erp_up_j * mask_x_j
-                count[:, :] += mask_x_j
+                value_ = value.view(3, H*W)
+                count_ = count.view(3, H*W)
+                value_[:, indices] += x_erp_up_j
+                count_[:, indices] += 1
             
             # save count map
             count_ = count / count.max()
@@ -162,6 +175,16 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
 
             # 7) Aggregate on canonical space
             x_erp_up = value / (count + 1e-8)
+            ToPILImage()(x_erp_up[0].cpu()).save(f"/{save_dir}/{i+1:0>2}/erp.png")
+
+            # save count map
+            count_ = (count / count.max()).view(1, 3, *x_erp_up.shape[-2:])
+            count_ = ToPILImage()(count_.cpu()[0][0])
+            count_.save(f'/{save_dir}/{i+1:0>2}/count.png')
+
+            # 7) Aggregate on canonical space
+            x_erp_up = value / (count + 1e-8)
+            x_erp_up = x_erp_up.view(1, 3, *x_erp_up.shape[-2:])
             ToPILImage()(x_erp_up[0].cpu()).save(f"/{save_dir}/{i+1:0>2}/erp.png")
 
             # 8) forward mapping x -> w^0

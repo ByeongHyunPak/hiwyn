@@ -58,7 +58,7 @@ if __name__ == '__main__':
             directions.append((theta, phis[i]))
         print(*directions[-args.num_theta[i]:])   
 
-# with torch.autocast(device_type='cuda', dtype=(torch.float16 if args.half_precision else torch.float32)):          
+with torch.autocast(device_type='cuda', dtype=(torch.float16 if args.half_precision else torch.float32)):          
     try:
         H, W = args.hw
         model = globals()[f"{args.model}"]
