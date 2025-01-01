@@ -1,3 +1,5 @@
+from .multidiffusion import MODEL_TYPE_STABLE_DIFFUSION, MODEL_TYPE_DEEPFLOYD
+
 from .multidiffusion import MultiDiffusion, seed_everything
 from .multidiffusion_2 import MultiDiffusion_2
 from .multidiffusion_3 import MultiDiffusion_3
