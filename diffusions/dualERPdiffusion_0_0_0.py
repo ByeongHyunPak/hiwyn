@@ -308,7 +308,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         count_w = count_w.view(B, 1, H, W)
         count_w = count_w / count_w.max()
         count_w = ToPILImage()(count_w.cpu()[0][0])
-        count_w.save(f"{self.save_dir}/pers_branch_cnt.png")
+        count_w.save(f"{self.save_dir}/stage1/pers_branch_cnt.png")
 
         return aggregated_wt_erp_img
 
@@ -392,7 +392,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         ### count map save
         count_z = count_z / count_z.max()
         count_z = ToPILImage()(count_z.cpu()[0][0])
-        count_z.save(f"{self.save_dir}/erp_branch_cnt.png")
+        count_z.save(f"{self.save_dir}/stage1/erp_branch_cnt.png")
 
         return zt_ddim_output
 
