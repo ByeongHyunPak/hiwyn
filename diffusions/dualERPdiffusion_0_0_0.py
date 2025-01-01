@@ -13,6 +13,8 @@ from diffusers import DDIMScheduler, DiffusionPipeline, StableDiffusionPipeline
 from diffusions import ERPDiffusion_0_1_1, MODEL_TYPE_STABLE_DIFFUSION, MODEL_TYPE_DEEPFLOYD
 from geometry import make_coord, gridy2x_erp2pers, gridy2x_pers2erp
 
+from torch.cuda.amp import autocast
+
 """ !python main.py --hf_key "DeepFloyd/IF-I-M-v1.0" --model "DualERPDiffusion_0_0_0" --hw 64 128  --theta_range 0 360 --num_theta 3 6 6 3 --phi_range -45 45 --num_phi 4 --fov 90
 """
 
@@ -39,7 +41,6 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
     def stage_2(self,
                 w0s,
                 prompt_embeds,
-                negative_prompt_embeds,
                 height=512, width=1024,
                 num_inference_steps=100,
                 guidance_scale=7.0,
@@ -88,14 +89,15 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
                 model_input = self.pipe2.scheduler.scale_model_input(model_input, t)
                 
                 # predict the noise residual
-                noise_pred = self.pipe2.unet(
-                    model_input,
-                    t,
-                    encoder_hidden_states=prompt_embeds,
-                    class_labels=noise_level,
-                    cross_attention_kwargs=None,
-                    return_dict=False,
-                )[0]
+                with autocast():
+                    noise_pred = self.pipe2.unet(
+                        model_input,
+                        t,
+                        encoder_hidden_states=prompt_embeds,
+                        class_labels=noise_level,
+                        cross_attention_kwargs=None,
+                        return_dict=False,
+                    )[0]
 
                 # class-free guidance
                 noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
@@ -244,8 +246,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         if stage2:
             wts_img = self.stage_2(
                 w0s=wts_img,
-                prompt_embeds=pers_text_embeds[1].unsqueeze(0),
-                negative_prompt_embeds=pers_text_embeds[0].unsqueeze(0)
+                prompt_embeds=pers_text_embeds,
             )
 
         return wts_img
