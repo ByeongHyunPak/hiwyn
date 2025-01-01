@@ -13,6 +13,8 @@ from diffusers import DDIMScheduler, DiffusionPipeline, StableDiffusionPipeline
 from diffusions import ERPDiffusion_0_1_1, MODEL_TYPE_STABLE_DIFFUSION, MODEL_TYPE_DEEPFLOYD
 from geometry import make_coord, gridy2x_erp2pers, gridy2x_pers2erp
 
+""" !python main.py --hf_key "DeepFloyd/IF-I-M-v1.0" --model "DualERPDiffusion_0_0_0" --hw 64 128  --theta_range 0 360 --num_theta 3 6 6 3 --phi_range -45 45 --num_phi 4 --fov 90
+"""
 
 class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
 
@@ -27,7 +29,111 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         self.fov = fov
         self.views = views
         self.up_level = 3
+
+        if self.mode == MODEL_TYPE_DEEPFLOYD:
+            ddim = DDIMScheduler.from_pretrained("DeepFloyd/IF-II-M-v1.0", subfolder="scheduler")
+            self.pipe2 = DiffusionPipeline.from_pretrained("DeepFloyd/IF-II-M-v1.0", scheduler=ddim, variant="fp16", torch_dtype=(torch.float16 if half_precision else torch.float32))
     
+    @torch.no_grad()
+    def stage_2(self,
+                w0s,
+                prompt_embeds,
+                negative_prompt_embeds,
+                height=512, width=1024,
+                num_inference_steps=100,
+                guidance_scale=7.0,
+                noise_level=50):
+        # https://github.com/dangeng/visual_anagrams/blob/main/visual_anagrams/samplers.py#L145
+        # https://github.com/huggingface/diffusers/blob/main/src/diffusers/pipelines/deepfloyd_if/pipeline_if_superresolution.py#L606
+        
+        h = w = self.pipe2.unet.config.sample_size # 256
+        num_images_per_promt = 1
+        num_prompts = prompt_embeds.shape[0]
+
+        # Get noisy images
+        _, wts = self.sample_initial_noises(height, width, h, w)
+
+        # Define Pers. fusion map
+        value = torch.zeros((1, 3, height, width), device=w0s[0].device)
+        count = torch.zeros((1, 1, height, width), device=w0s[0].device)
+
+        # Prepare ERP-Pers. projection
+        self.prepare_erp_pers_matching(erp_img_hw=(height, width), pers_img_hw=(h, w))
+
+        # Prepare upscaled image and noise level
+        w0s = [self.pipe2.preprocess_image(w0, num_images_per_promt, self.device) for w0 in w0s]
+        w0s = [F.interpolate(w0, (h, w), mode="bilinear", align_corners=True) for w0 in w0s]
+
+        noise_level = torch.tensor([noise_level] * w0s[0].shape[0], device=w0s[0].device)
+        w0s = [self.pipe2.image_noising_scheduler.add_noise(w0, noise, timestpes=noise_level)
+               for w0, noise in zip(w0s, wts)] # TODO: resample noise with other generator, not using wts
+        
+        # Condition on noise level, for each model input
+        noise_level = torch.cat([noise_level] * num_prompts * 2)
+
+        # set scheduler
+        self.pipe2.scheduler.set_timesteps(num_inference_steps)
+        for i, t in enumerate(tqdm(self.pipe2.scheduler.timesteps)):
+
+            os.makedirs(f"{self.save_dir}/{i+1:0>2}/stage2/", exist_ok=True)
+
+            value.zero_(); count.zero_()
+
+            # denoising each pers. view
+            wts_original = []
+            for j in range(len(self.views)):
+                wt, w0 = wts[j], w0s[j]
+                model_input = torch.cat([wt, w0], dim=1)
+                model_input = self.pipe2.scheduler.scale_model_input(model_input, t)
+                
+                # predict the noise residual
+                noise_pred = self.pipe2.unet(
+                    model_input,
+                    t,
+                    encoder_hidden_states=prompt_embeds,
+                    class_labels=noise_level,
+                    cross_attention_kwargs=None,
+                    return_dict=False,
+                )[0]
+
+                # class-free guidance
+                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                noise_pred_uncond, _ = noise_pred_uncond.split(model_input.shape[1] // 2, dim=1)
+                noise_pred_text, predicted_variance = noise_pred_text.split(model_input.shape[1] // 2, dim=1)
+                noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+
+                # ddim step
+                wt_ddim_output = self.scheduler.step(noise_pred, t, wt)
+                wts_original.append(wt_ddim_output['pred_original_sample'])
+            
+            # fuse every wts_original
+            wts_original_img = [self.decode_latents(wj) for wj in wts_original]
+            for j, w0_img in enumerate(wts_original_img):
+                theta, phi = self.views[j]
+                ToPILImage()(w0_img[0].cpu()).save(f"{self.save_dir}/{i+1:0>2}/stage2/w0_{theta}_{phi}.png")
+            
+            # Aggregate each Pers. original image on ERP grid
+            wts_erp_img = self.aggregate_pers_imgs_on_erp(wts_original_img, value, count)
+            ToPILImage()(wts_erp_img[0].cpu()).save(f"{self.save_dir}/{i+1:0>2}/stage2/w0.png")
+
+            # Update wt w/ fused erp_img
+            wts_original_img = self.erp_to_img_j(wts_erp_img, self.pers2erp_grids)
+            wts_original = [self.encode_images(wj) for wj in wts_original_img]
+            wts = [self.get_updated_noise(wt, w0, t) for wt, w0 in zip(wts, wts_original)]
+
+            wts_img = []
+            for j, wt in enumerate(wts):
+                theta, phi = self.views[j]
+                wt_img = self.decode_latents(wt)
+                ToPILImage()(wt_img[0].cpu()).save(f"{self.save_dir}/{i+1:0>2}/stage2/wt_{theta}_{phi}.png")
+                wts_img.append(wt_img)
+        
+        # save final erp image
+        wts_erp_img = self.aggregate_pers_imgs_on_erp(wts_img, value, count)
+        ToPILImage()(wts_erp_img[0].cpu()).save(f"{self.save_dir}/{i+1:0>2}/stage2/final_erp.png")
+
+        return wts_img
+
     @torch.no_grad()
     def text2erp(self,
                  prompts,
@@ -37,13 +143,14 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
                  guidance_scale=7.5, # 7.0 in visual_anagrams for DeepFloyd-IF
                  save_dir="imgs/",
                  circular_padding=True,
-                 spot_diffusion=True,
-                 mu=0.5):
+                 spot_diffusion=False,
+                 mu=0.5,
+                 stage2=True):
 
         self.save_dir = save_dir
         
         # setting dimensions
-        self.channel = self.unet.in_channels
+        self.channel = self.unet.config.in_channels
         H = height//self.resolution_factor # ERP noise h
         W = width//self.resolution_factor # ERP noise w
         h, w = 64, 64 # Pers. noise hw (= unet input hw)
@@ -67,7 +174,6 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         count_z = torch.zeros((1, 1, H, zt_width), device=zt.device)
 
         # Define Pers. fusion map
-        up_factor = 2 ** self.up_level
         value_w = torch.zeros((1, 3, height, width), device=zt.device)
         count_w = torch.zeros((1, 1, height, width), device=zt.device)
 
@@ -130,7 +236,13 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
                 ToPILImage()(wt_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/pers/wt_{theta}_{phi}.png")
                 wts_img.append(wt_img)
         
-        return zt_img, wts_img
+        wts_img = self.stage_2(
+            w0s=wts_img,
+            prompt_embeds=pers_text_embeds[1].unsqueeze(0),
+            negative_prompt_embeds=pers_text_embeds[0].unsqueeze(0)
+        )
+
+        return wts_img
         
     @torch.no_grad()
     def encode_images(self, imgs):
@@ -281,7 +393,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
 
     # misc
     @torch.no_grad()
-    def prepare_erp_pers_matching(self, erp_img_HW, pers_img_HW):
+    def prepare_erp_pers_matching(self, erp_img_hw, pers_img_hw):
         '''
         erp2pers_pairs: list of (erp2pers_grid, erp_indices)
         '''
@@ -289,16 +401,16 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         erp2pers_pairs = [] 
         pers2erp_grids = []
         
-        erp_grid = make_coord(erp_img_HW, flatten=False).to(self.device) # (H, W, 2)
-        pers_grid = make_coord(pers_img_HW, flatten=False).to(self.device) # (h, w, 2)
+        erp_grid = make_coord(erp_img_hw, flatten=False).to(self.device) # (H, W, 2)
+        pers_grid = make_coord(pers_img_hw, flatten=False).to(self.device) # (h, w, 2)
 
         for theta, phi in self.views:  
             ### ERP2PERS ###      
             erp2pers_grid, valid_mask = gridy2x_erp2pers(gridy=erp_grid,
-                HWy=erp_img_HW, HWx=pers_img_HW, THETA=theta, PHI=phi, FOVy=360, FOVx=90) # (H*W, 2), (H*W)
+                HWy=erp_img_hw, HWx=pers_img_hw, THETA=theta, PHI=phi, FOVy=360, FOVx=90) # (H*W, 2), (H*W)
         
             # Filter valid indices
-            erp_indices = torch.arange(0, erp_img_HW[0]*erp_img_HW[1]).to(self.device) # (H*W,)
+            erp_indices = torch.arange(0, erp_img_hw[0]*erp_img_hw[1]).to(self.device) # (H*W,)
             erp_indices = erp_indices[valid_mask.bool()].long() # sample (D,) from (H*W,)
 
             erp2pers_grid = erp2pers_grid[valid_mask.bool()] # sample (D, 2) from (H*W, 2)
@@ -309,8 +421,8 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
 
             ### PERS2ERP ###
             pers2erp_grid, valid_mask = gridy2x_pers2erp(gridy=pers_grid,
-                HWy=pers_img_HW, HWx=erp_img_HW, THETA=theta, PHI=phi, FOVy=self.fov, FOVx=360)
-            pers2erp_grid = pers2erp_grid.view(*pers_img_HW, 2).unsqueeze(0).flip(-1)
+                HWy=pers_img_hw, HWx=erp_img_hw, THETA=theta, PHI=phi, FOVy=self.fov, FOVx=360)
+            pers2erp_grid = pers2erp_grid.view(*pers_img_hw, 2).unsqueeze(0).flip(-1)
             pers2erp_grids.append(pers2erp_grid)
 
         self.erp2pers_pairs = erp2pers_pairs
@@ -340,12 +452,12 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         ### for pers. branch text_embeds
         prompts = [prompts]
         negative_prompts = [negative_prompts] if isinstance(negative_prompts, str) else negative_prompts
-        text_embeds = self.get_text_embeds(prompts, negative_prompts)  # [2, 77, 768]
+        pers_text_embeds = self.get_text_embeds(prompts, negative_prompts)  # [2, 77, 768]
         ### for erp branch text_embeds
         erp_prompts = f"360-degree panoramic image, {prompts}"
         erp_prompts = [erp_prompts]
         erp_text_embeds = self.get_text_embeds(erp_prompts, negative_prompts)  # [2, 77, 768]
-        return text_embeds, erp_text_embeds
+        return pers_text_embeds, erp_text_embeds
 
     @torch.no_grad()
     def get_views(self, panorama_height, panorama_width, window_size=64, stride=(8, 8)):
