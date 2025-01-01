@@ -32,7 +32,8 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
 
         if self.mode == MODEL_TYPE_DEEPFLOYD:
             ddim = DDIMScheduler.from_pretrained("DeepFloyd/IF-II-M-v1.0", subfolder="scheduler")
-            self.pipe2 = DiffusionPipeline.from_pretrained("DeepFloyd/IF-II-M-v1.0", scheduler=ddim, variant="fp16", torch_dtype=(torch.float16 if half_precision else torch.float32))
+            pipe2 = DiffusionPipeline.from_pretrained("DeepFloyd/IF-II-M-v1.0", scheduler=ddim, variant="fp16", torch_dtype=(torch.float16 if half_precision else torch.float32))
+            self.pipe2 = pipe2.to("cuda")
     
     @torch.no_grad()
     def stage_2(self,
