@@ -75,7 +75,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         self.pipe2.scheduler.set_timesteps(num_inference_steps)
         for i, t in enumerate(tqdm(self.pipe2.scheduler.timesteps)):
 
-            os.makedirs(f"{self.save_dir}/{i+1:0>2}/stage2/", exist_ok=True)
+            os.makedirs(f"{self.save_dir}/stage2/{i+1:0>2}/", exist_ok=True)
 
             value.zero_(); count.zero_()
 
@@ -110,11 +110,11 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
             wts_original_img = [self.decode_latents(wj) for wj in wts_original]
             for j, w0_img in enumerate(wts_original_img):
                 theta, phi = self.views[j]
-                ToPILImage()(w0_img[0].cpu()).save(f"{self.save_dir}/{i+1:0>2}/stage2/w0_{theta}_{phi}.png")
+                ToPILImage()(w0_img[0].cpu()).save(f"{self.save_dir}/stage2/{i+1:0>2}/w0_{theta}_{phi}.png")
             
             # Aggregate each Pers. original image on ERP grid
             wts_erp_img = self.aggregate_pers_imgs_on_erp(wts_original_img, value, count)
-            ToPILImage()(wts_erp_img[0].cpu()).save(f"{self.save_dir}/{i+1:0>2}/stage2/w0.png")
+            ToPILImage()(wts_erp_img[0].cpu()).save(f"{self.save_dir}/stage2/{i+1:0>2}/w0.png")
 
             # Update wt w/ fused erp_img
             wts_original_img = self.erp_to_img_j(wts_erp_img, self.pers2erp_grids)
@@ -125,12 +125,12 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
             for j, wt in enumerate(wts):
                 theta, phi = self.views[j]
                 wt_img = self.decode_latents(wt)
-                ToPILImage()(wt_img[0].cpu()).save(f"{self.save_dir}/{i+1:0>2}/stage2/wt_{theta}_{phi}.png")
+                ToPILImage()(wt_img[0].cpu()).save(f"{self.save_dir}/stage2/{i+1:0>2}/wt_{theta}_{phi}.png")
                 wts_img.append(wt_img)
         
         # save final erp image
         wts_erp_img = self.aggregate_pers_imgs_on_erp(wts_img, value, count)
-        ToPILImage()(wts_erp_img[0].cpu()).save(f"{self.save_dir}/{i+1:0>2}/stage2/final_erp.png")
+        ToPILImage()(wts_erp_img[0].cpu()).save(f"{self.save_dir}/stage2/{i+1:0>2}/final_erp.png")
 
         return wts_img
 
@@ -186,8 +186,8 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         self.scheduler.set_timesteps(num_inference_steps)
         for i, t in enumerate(tqdm(self.scheduler.timesteps)):
 
-            os.makedirs(f"{save_dir}/{i+1:0>2}/erp/", exist_ok=True)
-            os.makedirs(f"{save_dir}/{i+1:0>2}/pers/", exist_ok=True)
+            os.makedirs(f"{save_dir}/stage1/{i+1:0>2}/erp/", exist_ok=True)
+            os.makedirs(f"{save_dir}/stage1/{i+1:0>2}/pers/", exist_ok=True)
 
             value_z.zero_(); count_z.zero_()
             value_w.zero_(); count_w.zero_()
@@ -201,20 +201,20 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
             wts_original = [wj['pred_original_sample'] for wj in wts_ddim_outputs]
 
             zt_original_img = self.decode_latents(zt_original)
-            ToPILImage()(zt_original_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/erp/z0.png")
+            ToPILImage()(zt_original_img[0].cpu()).save(f"{save_dir}/stage1/{i+1:0>2}/erp/z0.png")
 
             wts_original_img = [self.decode_latents(wj) for wj in wts_original]
             for j, w0_img in enumerate(wts_original_img):
                 theta, phi = self.views[j]
-                ToPILImage()(w0_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/pers/w0_{theta}_{phi}.png")
+                ToPILImage()(w0_img[0].cpu()).save(f"{save_dir}/stage1/{i+1:0>2}/pers/w0_{theta}_{phi}.png")
 
             # Aggregate each Pers. original image on ERP grid
             wts_erp_img = self.aggregate_pers_imgs_on_erp(wts_original_img, value_w, count_w)
-            ToPILImage()(wts_erp_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/pers/w0.png")
+            ToPILImage()(wts_erp_img[0].cpu()).save(f"{save_dir}/stage1/{i+1:0>2}/pers/w0.png")
 
             # Fuse zt_original_img & wts_erp_img
             fused_erp_img = mu * zt_original_img + (1 - mu) * wts_erp_img
-            ToPILImage()(fused_erp_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/fused_erp_img.png")
+            ToPILImage()(fused_erp_img[0].cpu()).save(f"{save_dir}/stage1/{i+1:0>2}/fused_erp_img.png")
 
             # Update zt w/ fused erp_img
             zt_original = self.encode_images(fused_erp_img)
@@ -227,15 +227,19 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
 
             # save zt &  wt images
             zt_img = self.decode_latents(zt)
-            ToPILImage()(zt_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/erp/zt.png")
+            ToPILImage()(zt_img[0].cpu()).save(f"{save_dir}/stage1/{i+1:0>2}/erp/zt.png")
 
             wts_img = []
             for j, wt in enumerate(wts):
                 theta, phi = self.views[j]
                 wt_img = self.decode_latents(wt)
-                ToPILImage()(wt_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/pers/wt_{theta}_{phi}.png")
+                ToPILImage()(wt_img[0].cpu()).save(f"{save_dir}/stage1/{i+1:0>2}/pers/wt_{theta}_{phi}.png")
                 wts_img.append(wt_img)
         
+        # save final erp image
+        wts_erp_img = self.aggregate_pers_imgs_on_erp(wts_img, value_w, count_w)
+        ToPILImage()(wts_erp_img[0].cpu()).save(f"{self.save_dir}/stage1/{i+1:0>2}/final_erp.png")
+
         if stage2:
             wts_img = self.stage_2(
                 w0s=wts_img,
