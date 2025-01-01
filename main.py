@@ -8,11 +8,38 @@ import torch.nn.functional as F
 import numpy as np
 
 from tqdm import tqdm
-from torchvision.transforms import ToPILImage
 
 import gc
 import traceback
 from diffusions import *
+
+def run(args, directions, save_dir):
+    try:
+        H, W = args.hw
+        model = globals()[f"{args.model}"]
+        sd = model(device=torch.device('cuda'), hf_key=args.hf_key, half_precision=args.half_precision, fov=args.fov, views=directions)
+        
+        if "MultiDiffusion" in args.model or "SpotDiffusion" in args.model:
+            outputs = sd.text2panorama(
+                args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir
+            )
+        else:
+            outputs = sd.text2erp(
+                args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir
+            )
+        
+        del outputs
+        del sd
+        del model
+        torch.cuda.empty_cache()
+        gc.collect()
+    except Exception:
+        print(traceback.format_exc())
+        del sd
+        del model
+        torch.cuda.empty_cache()
+        gc.collect()
+
 
 if __name__ == '__main__':
 
@@ -57,33 +84,10 @@ if __name__ == '__main__':
         for theta in thetas:
             directions.append((theta, phis[i]))
         print(*directions[-args.num_theta[i]:])   
-
-with torch.autocast(device_type='cuda', dtype=(torch.float16 if args.half_precision else torch.float32)):          
-    try:
-        H, W = args.hw
-        model = globals()[f"{args.model}"]
-        
-        if "MultiDiffusion" in args.model or "SpotDiffusion" in args.model:
-            sd = model(device=torch.device('cuda'), hf_key=args.hf_key, half_precision=args.half_precision, fov=args.fov, views=directions) 
-            outputs = sd.text2panorama(args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
-        else:
-            sd = model(device=torch.device('cuda'), hf_key=args.hf_key, half_precision=args.half_precision, fov=args.fov, views=directions) 
-            outputs = sd.text2erp(
-                args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir)
+    
+    if "DeepFloyd" in args.hf_key:
+        run(args, directions, save_dir)
+    else:
+        with torch.autocast(device_type='cuda', dtype=(torch.float16 if args.half_precision else torch.float32)):
+            run(args, directions, save_dir)
             
-        del outputs
-        del sd
-        del model
-        torch.cuda.empty_cache()
-        gc.collect()
-        torch.cuda.empty_cache()
-        
-    except Exception:
-        print(traceback.format_exc()) 
-        del sd
-        del model
-        torch.cuda.empty_cache()
-        gc.collect()
-        torch.cuda.empty_cache()
-        
-        
