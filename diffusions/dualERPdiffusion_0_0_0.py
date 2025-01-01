@@ -43,7 +43,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
                 height=512, width=1024,
                 num_inference_steps=100,
                 guidance_scale=7.0,
-                noise_level=50.0):
+                noise_level=50):
         # https://github.com/dangeng/visual_anagrams/blob/main/visual_anagrams/samplers.py#L145
         # https://github.com/huggingface/diffusers/blob/main/src/diffusers/pipelines/deepfloyd_if/pipeline_if_superresolution.py#L606
         
