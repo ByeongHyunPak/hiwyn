@@ -68,11 +68,11 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
 
         # Define Pers. fusion map
         up_factor = 2 ** self.up_level
-        value_w = torch.zeros((1, 3, up_factor*H, up_factor*W), device=zt.device)
-        count_w = torch.zeros((1, 1, up_factor*H, up_factor*W), device=zt.device)
+        value_w = torch.zeros((1, 3, height, width), device=zt.device)
+        count_w = torch.zeros((1, 1, height, width), device=zt.device)
 
         # Prepare ERP-Pers. projection 
-        erp_img_hw = (up_factor*H, up_factor*W)
+        erp_img_hw = (height, width)
         pers_img_hw = (64*self.resolution_factor, 64*self.resolution_factor)
         self.prepare_erp_pers_matching(erp_img_hw, pers_img_hw)
 
@@ -95,26 +95,23 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
             wts_original = [wj['pred_original_sample'] for wj in wts_ddim_outputs]
 
             zt_original_img = self.decode_latents(zt_original)
+            ToPILImage()(zt_original_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/erp/z0.png")
+
             wts_original_img = [self.decode_latents(wj) for wj in wts_original]
             for j, w0_img in enumerate(wts_original_img):
                 theta, phi = self.views[j]
                 ToPILImage()(w0_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/pers/w0_{theta}_{phi}.png")
 
-            # Upscale ERP original image by up_factor
-            zt_erp_img = F.interpolate(zt_original_img, scale_factor=up_factor, mode='bilinear')
-            ToPILImage()(zt_erp_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/erp/z0.png")
-
             # Aggregate each Pers. original image on ERP grid
             wts_erp_img = self.aggregate_pers_imgs_on_erp(wts_original_img, value_w, count_w)
             ToPILImage()(wts_erp_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/pers/w0.png")
 
-            # Fuse zt_erp_img & wts_erp_img
-            fused_erp_img = mu * zt_erp_img + (1 - mu) * wts_erp_img
+            # Fuse zt_original_img & wts_erp_img
+            fused_erp_img = mu * zt_original_img + (1 - mu) * wts_erp_img
             ToPILImage()(fused_erp_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/fused_erp_img.png")
 
             # Update zt w/ fused erp_img
-            zt_original_img = F.interpolate(fused_erp_img, scale_factor=1/up_factor, mode='bilinear')
-            zt_original = self.encode_images(zt_original_img)
+            zt_original = self.encode_images(fused_erp_img)
             zt = self.get_updated_noise(zt, zt_original, t)
 
             # Update wt w/ fused erp_img
