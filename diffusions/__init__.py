@@ -17,3 +17,5 @@ from .ERPdiffusion_0_1_6 import ERPDiffusion_0_1_6 # deprecated
 
 from .ERPdiffusion_0_2_0 import ERPDiffusion_0_2_0
 from .ERPdiffusion_0_2_1 import ERPDiffusion_0_2_1 # something wrong
+
+from .dualERPdiffusion_0_0_0 import DualERPDiffusion_0_0_0
