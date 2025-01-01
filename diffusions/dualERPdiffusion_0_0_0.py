@@ -124,7 +124,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
 
             # save zt &  wt images
             zt_img = self.decode_latents(zt)
-            ToPILImage()(zt_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/erp/z0.png")
+            ToPILImage()(zt_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/erp/zt.png")
 
             wts_img = []
             for j, wt in enumerate(wts):
@@ -181,7 +181,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         for j, wt_img in enumerate(wts_original_img):
             per2erp_pixel_value, pers2erp_pixel_index = self.img_j_to_erp(wt_img, self.erp2pers_pairs[j])
             value_w = value_w.view(B*C, -1)
-            count_w = count_w.view(B*C, -1)
+            count_w = count_w.view(B*1, -1)
 
             value_w[:, pers2erp_pixel_index] += per2erp_pixel_value
             count_w[:, pers2erp_pixel_index] += 1
@@ -190,7 +190,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         aggregated_wt_erp_img = aggregated_wt_erp_img.view(B, C, H, W)
 
         ### count map save
-        count_w = count_w.view(B, C, H, W)
+        count_w = count_w.view(B, 1, H, W)
         count_w = count_w / count_w.max()
         count_w = ToPILImage()(count_w.cpu()[0][0])
         count_w.save(f"{self.save_dir}/pers_branch_cnt.png")
