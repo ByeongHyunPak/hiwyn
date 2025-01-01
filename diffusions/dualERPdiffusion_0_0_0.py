@@ -50,7 +50,6 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         
         h = w = self.pipe2.unet.config.sample_size # 256
         num_images_per_promt = 1
-        num_prompts = prompt_embeds.shape[0]
 
         # Get noisy images
         _, wts = self.sample_initial_noises(height, width, h, w)
@@ -63,7 +62,8 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         self.prepare_erp_pers_matching(erp_img_hw=(height, width), pers_img_hw=(h, w))
 
         # Prepare upscaled image and noise level
-        w0s = [self.pipe2.preprocess_image(w0, num_images_per_promt, self.device) for w0 in w0s]
+        # w0s = [self.pipe2.preprocess_image(w0, num_images_per_promt, self.device) for w0 in w0s]
+        w0s = [self.encode_images(w0) for w0 in w0s]
         w0s = [F.interpolate(w0, (h, w), mode="bilinear", align_corners=True) for w0 in w0s]
 
         noise_level = torch.tensor([noise_level] * w0s[0].shape[0], device=w0s[0].device)
@@ -71,7 +71,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
                for w0, noise in zip(w0s, wts)] # TODO: resample noise with other generator, not using wts
         
         # Condition on noise level, for each model input
-        noise_level = torch.cat([noise_level] * num_prompts * 2)
+        noise_level = torch.cat([noise_level] * 2)
 
         # set scheduler
         self.pipe2.scheduler.set_timesteps(num_inference_steps)
@@ -86,6 +86,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
             for j in range(len(self.views)):
                 wt, w0 = wts[j], w0s[j]
                 model_input = torch.cat([wt, w0], dim=1)
+                model_input = torch.cat([model_input] * 2)
                 model_input = self.pipe2.scheduler.scale_model_input(model_input, t)
                 
                 # predict the noise residual
