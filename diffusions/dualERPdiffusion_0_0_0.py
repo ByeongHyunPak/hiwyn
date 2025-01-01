@@ -22,7 +22,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
                  half_precision=False,
                  fov=90,
                  views=[(0, 0)]):
-        super.__init__(device, hf_key, half_precision)
+        super().__init__(device, hf_key, half_precision)
 
         self.fov = fov
         self.views = views
