@@ -55,7 +55,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
 
         # Get text_embeds and initial noises
         text_embeds = self.prepare_text_embeds(prompts, negative_prompts)
-        zt, wts = self.sample_initial_noises(self.channel, H, W, h, w)
+        zt, wts = self.sample_initial_noises(H, W, h, w)
 
         # Get ERP branch's noise crop positions
         zt_width = W//4 + W + W//4 if circular_padding else W # ERP noise width
