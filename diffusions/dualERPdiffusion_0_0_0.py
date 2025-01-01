@@ -236,11 +236,12 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
                 ToPILImage()(wt_img[0].cpu()).save(f"{save_dir}/{i+1:0>2}/pers/wt_{theta}_{phi}.png")
                 wts_img.append(wt_img)
         
-        wts_img = self.stage_2(
-            w0s=wts_img,
-            prompt_embeds=pers_text_embeds[1].unsqueeze(0),
-            negative_prompt_embeds=pers_text_embeds[0].unsqueeze(0)
-        )
+        if stage2:
+            wts_img = self.stage_2(
+                w0s=wts_img,
+                prompt_embeds=pers_text_embeds[1].unsqueeze(0),
+                negative_prompt_embeds=pers_text_embeds[0].unsqueeze(0)
+            )
 
         return wts_img
         
