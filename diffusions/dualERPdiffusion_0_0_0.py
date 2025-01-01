@@ -54,7 +54,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
                 ValueError(f"Stable Diffusion's output must have over 512 pixels. Now ({width, height}).")
 
         # Get text_embeds and initial noises
-        text_embeds = self.prepare_text_embeds(prompts, negative_prompts)
+        pers_text_embeds, erp_text_embeds = self.prepare_text_embeds(prompts, negative_prompts)
         zt, wts = self.sample_initial_noises(H, W, h, w)
 
         # Get ERP branch's noise crop positions
@@ -87,8 +87,8 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
             value_w.zero_(); count_w.zero_()
 
             # Get each branch's ddim output
-            zt_ddim_output = self.erp_denoising_branch(zt, text_embeds, guidance_scale, t, zt_views, value_z, count_z, spot_diffusion, circular_padding)
-            wts_ddim_outputs = self.pers_denoising_branch(wts, text_embeds, guidance_scale, t)
+            zt_ddim_output = self.erp_denoising_branch(zt, erp_text_embeds, guidance_scale, t, zt_views, value_z, count_z, spot_diffusion, circular_padding)
+            wts_ddim_outputs = self.pers_denoising_branch(wts, pers_text_embeds, guidance_scale, t)
             
             # Tweedie's formula: z0|t & w0|t
             zt_original = zt_ddim_output['pred_original_sample']
@@ -336,10 +336,16 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
     
     @torch.no_grad()
     def prepare_text_embeds(self, prompts, negative_prompts):
-        prompts = [prompts] if isinstance(prompts, str) else prompts
+        assert isinstance(prompts, str), ValueError("prompts mush be str.")
+        ### for pers. branch text_embeds
+        prompts = [prompts]
         negative_prompts = [negative_prompts] if isinstance(negative_prompts, str) else negative_prompts
         text_embeds = self.get_text_embeds(prompts, negative_prompts)  # [2, 77, 768]
-        return text_embeds
+        ### for erp branch text_embeds
+        erp_prompts = f"360-degree panoramic image, {prompts}"
+        erp_prompts = [erp_prompts]
+        erp_text_embeds = self.get_text_embeds(erp_prompts, negative_prompts)  # [2, 77, 768]
+        return text_embeds, erp_text_embeds
 
     @torch.no_grad()
     def get_views(self, panorama_height, panorama_width, window_size=64, stride=(8, 8)):
