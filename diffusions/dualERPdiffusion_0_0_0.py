@@ -403,7 +403,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
             # 1) Map each ERP pixel on Pers. image grid
             erp2pers_grid, valid_mask = gridy2x_erp2pers(gridy=erp_pixel_grid,
                 HWy=(H, W), HWx=(h, w), THETA=theta, PHI=phi, FOVy=360, FOVx=self.fov)
-            valid_erp2pers_grid = erp2pers_grid[valid_mask.bool()].long() # (D, 2) for D < H*W
+            valid_erp2pers_grid = erp2pers_grid[valid_mask.bool()] # (D, 2) for D < H*W
             
             # 2) Find nearest Pers. pixel index of each erp pixel
             valid_erp2pers_idx = F.grid_sample(
