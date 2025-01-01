@@ -346,8 +346,6 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         if isinstance(stride, int):
             stride = (stride, stride)
         stride_h, stride_w = stride
-        panorama_height /= self.resolution_factor
-        panorama_width /= self.resolution_factor
         num_blocks_height = (panorama_height - window_size) // stride_h + 1
         num_blocks_width = (panorama_width - window_size) // stride_w + 1
         total_num_blocks = int(num_blocks_height * num_blocks_width)
