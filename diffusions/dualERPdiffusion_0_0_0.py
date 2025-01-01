@@ -63,7 +63,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         zt_views = self.get_views(H, zt_width, stride=zt_stride)
 
         # Define ERP fusion map
-        value_z = torch.zeros((1, 3, H, zt_width), device=zt.device)
+        value_z = torch.zeros((1, self.channel, H, zt_width), device=zt.device)
         count_z = torch.zeros((1, 1, H, zt_width), device=zt.device)
 
         # Define Pers. fusion map
