@@ -65,7 +65,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         w0s = [F.interpolate(w0, (h, w), mode="bilinear", align_corners=True) for w0 in w0s]
 
         noise_level = torch.tensor([noise_level] * w0s[0].shape[0], device=w0s[0].device)
-        w0s = [self.pipe2.image_noising_scheduler.add_noise(w0, noise, timestpes=noise_level)
+        w0s = [self.pipe2.image_noising_scheduler.add_noise(w0, noise, timesteps=noise_level)
                for w0, noise in zip(w0s, wts)] # TODO: resample noise with other generator, not using wts
         
         # Condition on noise level, for each model input
