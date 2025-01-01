@@ -15,7 +15,9 @@ from geometry import make_coord, gridy2x_erp2pers, gridy2x_pers2erp
 
 from torch.cuda.amp import autocast
 
-""" !python main.py --hf_key "DeepFloyd/IF-I-M-v1.0" --model "DualERPDiffusion_0_0_0" --hw 64 128  --theta_range 0 360 --num_theta 3 6 6 3 --phi_range -45 45 --num_phi 4 --fov 90
+""" 
+!python main.py --hf_key "DeepFloyd/IF-I-M-v1.0" --model "DualERPDiffusion_0_0_0" --hw 64 128  --theta_range 0 360 --num_theta 3 6 6 3 --phi_range -45 45 --num_phi 4 --fov 90
+!python main.py --hf_key "DeepFloyd/IF-I-M-v1.0" --model "DualERPDiffusion_0_0_0" --hw 64 128  --theta_range 0 360 --num_theta 1 5 5 1 --phi_range -90 90 --num_phi 4 --fov 90
 """
 
 class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
@@ -77,7 +79,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         self.pipe2.scheduler.set_timesteps(num_inference_steps)
         for i, t in enumerate(tqdm(self.pipe2.scheduler.timesteps)):
 
-            os.makedirs(f"{self.save_dir}/stage2/{i+1:0>2}/", exist_ok=True)
+            os.makedirs(f"{self.save_dir}/stage2/{i+1:0>3}/", exist_ok=True)
 
             value.zero_(); count.zero_()
 
@@ -114,11 +116,11 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
             wts_original_img = [self.decode_latents(wj) for wj in wts_original]
             for j, w0_img in enumerate(wts_original_img):
                 theta, phi = self.views[j]
-                ToPILImage()(w0_img[0].cpu()).save(f"{self.save_dir}/stage2/{i+1:0>2}/w0_{theta}_{phi}.png")
+                ToPILImage()(w0_img[0].cpu()).save(f"{self.save_dir}/stage2/{i+1:0>3}/w0_{theta}_{phi}.png")
             
             # Aggregate each Pers. original image on ERP grid
             wts_erp_img = self.aggregate_pers_imgs_on_erp(wts_original_img, value, count)
-            ToPILImage()(wts_erp_img[0].cpu()).save(f"{self.save_dir}/stage2/{i+1:0>2}/w0.png")
+            ToPILImage()(wts_erp_img[0].cpu()).save(f"{self.save_dir}/stage2/{i+1:0>3}/w0.png")
 
             # Update wt w/ fused erp_img
             wts_original_img = self.erp_to_img_j(wts_erp_img, self.pers2erp_grids)
@@ -129,12 +131,12 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
             for j, wt in enumerate(wts):
                 theta, phi = self.views[j]
                 wt_img = self.decode_latents(wt)
-                ToPILImage()(wt_img[0].cpu()).save(f"{self.save_dir}/stage2/{i+1:0>2}/wt_{theta}_{phi}.png")
+                ToPILImage()(wt_img[0].cpu()).save(f"{self.save_dir}/stage2/{i+1:0>3}/wt_{theta}_{phi}.png")
                 wts_img.append(wt_img)
         
         # save final erp image
         wts_erp_img = self.aggregate_pers_imgs_on_erp(wts_img, value, count)
-        ToPILImage()(wts_erp_img[0].cpu()).save(f"{self.save_dir}/stage2/{i+1:0>2}/final_erp.png")
+        ToPILImage()(wts_erp_img[0].cpu()).save(f"{self.save_dir}/stage2/{i+1:0>3}/final_erp.png")
 
         return wts_img
 
