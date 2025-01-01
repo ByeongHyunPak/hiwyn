@@ -44,7 +44,7 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
         img_j_to_erp_img = F.grid_sample(
             img_j, # (1, C, h, w)
             erp2pers_grid, # (_, D, _, 2)
-            mode="bicubic", align_corners=False,
+            mode="bilinear", align_corners=False,
             padding_mode="reflection"
         ) # (_, C, D, 1)
 
@@ -63,7 +63,8 @@ class ERPDiffusion_0_1_1(ERPDiffusion_0_1_0):
         img_js = F.grid_sample(
             erp_img.expand(len(self.views), -1, -1 ,-1),
             pers2erp_grids_input,
-            mode="bicubic", align_corners=False)
+            padding_mode="reflection"
+            mode="bilinear", align_corners=False)
         
         img_js.clamp_(0, 1)
         
