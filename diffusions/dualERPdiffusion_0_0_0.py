@@ -240,7 +240,7 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
 
         ### horizontal translation (SpotDiffusion)
         shift_w = random.randint(0, W-1) if spot_diffusion else 0
-        zt = torch.roll(zt, shifts=shift_w, dim=-1) 
+        zt = torch.roll(zt, shifts=shift_w, dims=-1) 
 
         ### circular padding
         pad_w = W//4 if circular_padding else 0
@@ -270,8 +270,8 @@ class DualERPDiffusion_0_0_0(ERPDiffusion_0_1_1):
         zt_noise_pred = value_z / (count_z + 1e-8)
 
         ### unroll horizontal translation (SpotDiffusion)
-        zt_noise_pred = torch.roll(zt_noise_pred, shifts=-shift_w, dim=-1)
-        zt = torch.roll(zt, shifts=-shift_w, dim=-1)
+        zt_noise_pred = torch.roll(zt_noise_pred, shifts=-shift_w, dims=-1)
+        zt = torch.roll(zt, shifts=-shift_w, dims=-1)
         zt_ddim_output = self.scheduler.step(zt_noise_pred, t, zt)
         
         ### count map save
