@@ -1,3 +1,3 @@
+from .diffusion_base import DiffusionPipeBase
 from .deepfloyd_if import CustomDeepfloydIFPipeline
-from .diffusion_utils import DiffusionUtilMixin
 from .stable_diffusion import CustomStableDiffusionPipeline
