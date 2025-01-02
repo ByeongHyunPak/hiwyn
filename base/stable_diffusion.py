@@ -1,18 +1,20 @@
 
-from base import DiffusionUtilMixin
+from base import DiffusionPipeBase
 from diffusers import StableDiffusionPipeline, DDIMScheduler
 import torch
 
-class CustomStableDiffusionPipeline(DiffusionUtilMixin):
-    __slots__ = ["pipe", "resolution_factor"]
+class CustomStableDiffusionPipeline(DiffusionPipeBase):
+    __slots__ = ["device", "pipe", "resolution_factor", "vae", "tokenizer", "text_encoder", "unet", "scheduler"]
     def __init__(self, hf_key, device, half_precision=False):
+        super().__init__()
         ddim = DDIMScheduler.from_pretrained(hf_key, subfolder="scheduler")
         pipe = StableDiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32))
         pipe = pipe.to(device)
-        # self.vae, self.text_encoder, self.tokenizer, self.unet, self.scheduler, _, _, _ =  pipe.components.values()
+        self.vae, self.text_encoder, self.tokenizer, self.unet, self.scheduler, _, _, _ =  pipe.components.values()
         self.resolution_factor = 8
+        self.device = device
         print(f'[INFO] loaded diffusion pipes!')
-
+    
     @torch.no_grad()
     def get_text_embeds(self, prompt, negative_prompt):
         # prompt, negative_prompt: [str]
@@ -28,8 +30,15 @@ class CustomStableDiffusionPipeline(DiffusionUtilMixin):
 
         uncond_embeddings = self.text_encoder(uncond_input.input_ids.to(self.device))[0]
         
-        text_embeds = torch.cat([text_embeddings, uncond_embeddings])
+        text_embeds = torch.cat([uncond_embeddings, text_embeddings])
         return text_embeds
+
+    @torch.no_grad()
+    def encode_images(self, imgs):
+        imgs = (imgs - 0.5) * 2
+        posterior = self.vae.encode(imgs).latent_dist
+        latents = posterior.sample() * 0.18215
+        return latents
 
     @torch.no_grad()
     def decode_latents(self, latents):
@@ -39,3 +48,9 @@ class CustomStableDiffusionPipeline(DiffusionUtilMixin):
         # Post-processing
         latents = (latents / 2 + 0.5).clamp(0, 1)    
         return latents
+
+    @torch.no_grad()
+    def noise_guidance(self, noise_pred, guidance_scale):
+        noise_pred_uncond, noise_pred_cond = noise_pred.chunk(2)
+        noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_cond - noise_pred_uncond)
+        return noise_pred

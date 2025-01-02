@@ -21,8 +21,6 @@ class ERPDiffusion_0_0_0(MultiDiffusion):
                  half_precision=False
                  ):
         super().__init__(device, hf_key, half_precision)
-
-        self.up_level = 3
         
         self.views = views
         self.fov = fov
