@@ -173,7 +173,7 @@ class ERPDiffusionDualBranch(nn.Module):
                  save_dir="imgs/",
                  circular_padding=True,
                  spot_diffusion=False,
-                 mu=0.5):
+                 global_context_weight=0.5):
 
         self.save_dir = save_dir
         
@@ -247,7 +247,7 @@ class ERPDiffusionDualBranch(nn.Module):
             ToPILImage()(wts_erp_img[0].cpu()).save(f"{save_dir}/stage1/{i+1:0>2}/pers/w0.png")
 
             # Fuse zt_original_img & wts_erp_img
-            fused_erp_img = mu * zt_original_img + (1 - mu) * wts_erp_img
+            fused_erp_img = global_context_weight * zt_original_img + (1 - global_context_weight) * wts_erp_img
             ToPILImage()(fused_erp_img[0].cpu()).save(f"{save_dir}/stage1/{i+1:0>2}/fused_erp_img.png")
 
             # Update zt w/ fused erp_img
