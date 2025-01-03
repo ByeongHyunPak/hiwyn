@@ -12,14 +12,21 @@ from tqdm import tqdm
 import gc
 import traceback
 from diffusions import *
+from base import *
 
-def run(args, directions, save_dir):
+MODEL_TYPE_STABLE_DIFFUSION, MODEL_TYPE_DEEPFLOYD = "stable-diffusion", "DeepFloyd"
+
+def seed_everything(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
+def run(args, pipe, directions, save_dir):
     try:
         H, W = args.hw
         model = globals()[f"{args.model}"]
-        sd = model(device=torch.device('cuda'), hf_key=args.hf_key, half_precision=args.half_precision, fov=args.fov, views=directions)
-        
-        if "MultiDiffusion" in args.model or "SpotDiffusion" in args.model:
+        sd = model(pipe, device=torch.device('cuda'), fov=args.fov, views=directions)
+
+        if "MultiDiffusion" in args.model:
             outputs = sd.text2panorama(
                 args.prompt, args.negative, height=H, width=W, num_inference_steps=args.steps, save_dir=save_dir
             )
@@ -39,7 +46,6 @@ def run(args, directions, save_dir):
         del model
         torch.cuda.empty_cache()
         gc.collect()
-
 
 if __name__ == '__main__':
 
@@ -86,8 +92,11 @@ if __name__ == '__main__':
         print(*directions[-args.num_theta[i]:])   
     
     if "DeepFloyd" in args.hf_key:
-        run(args, directions, save_dir)
+        # with torch.autocast(device_type='cuda', dtype=(torch.float16 if args.half_precision else torch.float32)):
+        pipe = CustomDeepfloydIFPipeline(hf_key=args.hf_key, device=torch.device('cuda'), half_precision=args.half_precision)
+        run(args, pipe, directions, save_dir)
     else:
         with torch.autocast(device_type='cuda', dtype=(torch.float16 if args.half_precision else torch.float32)):
-            run(args, directions, save_dir)
+            pipe = CustomStableDiffusionPipeline(hf_key=args.hf_key, device=torch.device('cuda'), half_precision=args.half_precision)
+            run(args, pipe, directions, save_dir)
             
