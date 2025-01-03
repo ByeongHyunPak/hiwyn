@@ -325,8 +325,7 @@ class ERPDiffusionDualBranch(nn.Module):
             wt_model_input = self.pipe.scheduler.scale_model_input(wt_model_input)
 
             ### unet noise prediction
-            with autocast():
-                noise_pred = self.pipe.unet(wt_model_input, t, encoder_hidden_states=text_embeds)['sample']
+            noise_pred = self.pipe.unet_autocast(wt_model_input, t, encoder_hidden_states=text_embeds)['sample']
 
             ### perform guidance
             noise_pred = self.pipe.noise_guidance(noise_pred, guidance_scale)
@@ -368,8 +367,7 @@ class ERPDiffusionDualBranch(nn.Module):
             zt_model_input = self.pipe.scheduler.scale_model_input(zt_model_input)
 
             ### unet noise prediction
-            with autocast():
-                noise_pred = self.pipe.unet(zt_model_input, t, encoder_hidden_states=text_embeds)['sample']
+            noise_pred = self.pipe.unet_autocast(zt_model_input, t, encoder_hidden_states=text_embeds)
 
             ### perform guidance
             noise_pred = self.pipe.noise_guidance(noise_pred, guidance_scale)

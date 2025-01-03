@@ -3,9 +3,9 @@ from diffusers import DiffusionPipeline, DDIMScheduler
 import torch
 
 class CustomDeepfloydIFPipeline(DiffusionPipeBase):
-    __slots__ = ["device", "encode_prompt", "pipe", "resolution_factor", "tokenizer", "text_encoder", "unet", "scheduler"]
+    __slots__ = ["device", "encode_prompt", "pipe", "resolution_factor", "tokenizer", "text_encoder", "unet", "scheduler", "half_precision"]
     def __init__(self, hf_key, device, half_precision=False):
-        super().__init__()
+        super().__init__(half_precision)
         ddim = DDIMScheduler.from_pretrained(hf_key, subfolder="scheduler")
         pipe = DiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, variant="fp16", torch_dtype=(torch.float16 if half_precision else torch.float32))
         pipe = pipe.to(device)

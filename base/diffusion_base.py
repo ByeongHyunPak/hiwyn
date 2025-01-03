@@ -7,9 +7,19 @@ from geometry import erp2pers_discrete_warping
 
 class DiffusionPipeBase():
     __slots__ = ["up_level", "scheduler"]
-    def __init__(self):
+    def __init__(self, half_precision):
         self.up_level = 3
         self.scheduler = None
+        self.half_precision = half_precision
+
+    @torch.no_grad()
+    def unet_autocast(self, input, t, encoder_hidden_states):
+        if self.half_precision:
+            input = input.half()
+            t = t.half()
+            encoder_hidden_states = encoder_hidden_states.half()
+
+        return self.unet(input, t, encoder_hidden_states=encoder_hidden_states)['sample'].float()
 
     def decode_latents(self, latent):
         NotImplementedError("decode_latents() is not defined in this pipe")

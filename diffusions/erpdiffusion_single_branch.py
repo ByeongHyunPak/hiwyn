@@ -81,7 +81,8 @@ class ERPDiffusionSingleBranch(nn.Module):
 
                 # 4) Predict e_theta(w^t_j, t)
                 unet_input = torch.cat([w_j] * 2)
-                noise_pred = self.pipe.unet(unet_input, t, encoder_hidden_states=text_embeds)['sample']
+
+                noise_pred = self.pipe.unet_autocast(unet_input, t, encoder_hidden_states=text_embeds)
 
                 # perform guidance
                 noise_pred_uncond, noise_pred_cond = noise_pred.chunk(2)

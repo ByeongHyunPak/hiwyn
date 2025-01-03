@@ -4,9 +4,9 @@ from diffusers import StableDiffusionPipeline, DDIMScheduler
 import torch
 
 class CustomStableDiffusionPipeline(DiffusionPipeBase):
-    __slots__ = ["device", "pipe", "resolution_factor", "vae", "tokenizer", "text_encoder", "unet", "scheduler"]
+    __slots__ = ["device", "pipe", "resolution_factor", "vae", "tokenizer", "text_encoder", "unet", "scheduler", "half_precision"]
     def __init__(self, hf_key, device, half_precision=False):
-        super().__init__()
+        super().__init__(half_precision)
         ddim = DDIMScheduler.from_pretrained(hf_key, subfolder="scheduler")
         pipe = StableDiffusionPipeline.from_pretrained(hf_key, scheduler=ddim, torch_dtype=(torch.float16 if half_precision else torch.float32))
         pipe = pipe.to(device)
