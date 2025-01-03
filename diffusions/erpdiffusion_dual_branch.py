@@ -329,7 +329,7 @@ class ERPDiffusionDualBranch(nn.Module):
                 noise_pred = self.pipe.unet(wt_model_input, t, encoder_hidden_states=text_embeds)['sample']
 
             ### perform guidance
-            noise_pred = self.pipe.noise_guidance(noise_pred, guidance_scale)
+            noise_pred = self.pipe.noise_guidance(noise_pred, 0) #! temporary
 
             wt_ddim_output = self.pipe.scheduler.step(noise_pred, t, wt)
             wts_ddim_outputs.append(wt_ddim_output)
