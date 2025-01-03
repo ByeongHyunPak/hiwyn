@@ -33,7 +33,7 @@ class ERPDiffusionDualBranch(nn.Module):
                  fov=90,
                  views=[(0, 0)],
                  half_precision=True
-                 ):
+                 ): 
         super().__init__()
         self.device = device
         self.fov = fov
@@ -189,7 +189,7 @@ class ERPDiffusionDualBranch(nn.Module):
 
         # Get text_embeds and initial noises
         pers_text_embeds, erp_text_embeds = self.prepare_text_embeds(prompts, negative_prompts)
-        self.pipe.text_encoder.cpu()
+        # self.pipe.text_encoder.cpu()
         del self.pipe.tokenizer
         del self.pipe.text_encoder
         gc.collect()
